@@ -1,33 +1,33 @@
 -- ============================================================
--- LOAD KAVO UI
+-- LOAD ORION UI
 -- ============================================================
-local KavoUI
+local OrionLib
 local ok = pcall(function()
-    KavoUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+    OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Qanuir/orion-ui/refs/heads/main/source.lua"))()
 end)
 
-if not ok or not KavoUI or not KavoUI.CreateLib then
-    warn("[KAVO] Thử URL dự phòng...")
+if not ok or not OrionLib or not OrionLib.MakeWindow then
+    warn("[ORION] Thử URL dự phòng...")
     ok = pcall(function()
-        KavoUI = loadstring(game:HttpGet("https://github.com/xHeptc/Kavo-UI-Library/raw/main/source.lua"))()
+        OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
     end)
 end
 
-if not ok or not KavoUI or not KavoUI.CreateLib then
-    warn("[KAVO] ❌ Không thể load Kavo UI Library. Dừng script.")
+if not ok or not OrionLib or not OrionLib.MakeWindow then
+    warn("[ORION] ❌ Không thể load Orion UI Library. Dừng script.")
     return
 end
 
 -- Xóa GUI cũ
 pcall(function()
     for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-        if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield") or gui.Name:lower():find("sirius")) then
+        if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield") or gui.Name:lower():find("sirius") or gui.Name:lower():find("orion")) then
             gui:Destroy()
         end
     end
     if plr and plr:FindFirstChild("PlayerGui") then
         for _, gui in ipairs(plr.PlayerGui:GetChildren()) do
-            if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield")) then
+            if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield") or gui.Name:lower():find("orion")) then
                 gui:Destroy()
             end
         end
@@ -36,38 +36,153 @@ end)
 task.wait(0.3)
 
 -- ============================================================
--- TẠO KAVO WINDOW
+-- TẠO ORION WINDOW
 -- ============================================================
-local Window = KavoUI.CreateLib("IdkQqw's Project", "DarkTheme")
-task.wait(0.2)  -- 👈 QUAN TRỌNG: đợi Kavo render xong
+local Window = OrionLib:MakeWindow({
+    Name = "IdkQqw's Project",
+    HidePremium = false,
+    SaveConfig = false,
+    ConfigFolder = "IdkQqwProject",
+    IntroEnabled = false,
+    IntroText = "IdkQqw's Project"
+})
 
--- Đảm bảo DisplayOrder cao
-pcall(function()
-    for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-        if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
-            gui.DisplayOrder = 999999
-            gui.IgnoreGuiInset = true
+-- ============================================================
+-- TẠO TABS
+-- ============================================================
+local Tabs = {
+    Info        = Window:MakeTab({Name = "Info & Status",  Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Main        = Window:MakeTab({Name = "Farming",        Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Settings    = Window:MakeTab({Name = "Settings",       Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Fish        = Window:MakeTab({Name = "Fishing",        Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Quests      = Window:MakeTab({Name = "Quest & Item",   Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    SeaEvent    = Window:MakeTab({Name = "Sea Event",      Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Race        = Window:MakeTab({Name = "Mirage & Race",  Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Prehistoric = Window:MakeTab({Name = "Volcano Event",  Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Esp         = Window:MakeTab({Name = "Stats & Esp",    Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Raids       = Window:MakeTab({Name = "Fruit & Raid",   Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+    Misc        = Window:MakeTab({Name = "Miscellaneous",  Icon = "rbxassetid://4483345998", PremiumOnly = false}),
+}
+
+-- ============================================================
+-- NOTIFY HELPER
+-- ============================================================
+local function OrionNotify(title, content, duration)
+    pcall(function()
+        OrionLib:MakeNotification({
+            Name = title,
+            Content = content,
+            Image = "rbxassetid://4483345998",
+            Time = duration or 5
+        })
+    end)
+end
+
+-- ============================================================
+-- ORION HELPERS
+-- ============================================================
+local function AddSection(tab, name)
+    return tab:AddSection(name)
+end
+
+local function AddToggle(tab, name, default, callback)
+    tab:AddToggle({
+        Name = name,
+        Default = default or false,
+        Flag = "toggle_" .. name:gsub("%s+", "_") .. "_" .. tostring(math.random(1, 99999)),
+        Callback = function(value)
+            if callback then callback(value) end
         end
+    })
+end
+
+local function AddDropdown(tab, name, options, default, callback)
+    if not options or #options == 0 then options = {"None"} end
+    tab:AddDropdown({
+        Name = name,
+        Options = options,
+        Default = default or options[1],
+        Flag = "dropdown_" .. name:gsub("%s+", "_") .. "_" .. tostring(math.random(1, 99999)),
+        Callback = function(value)
+            if callback then callback(value) end
+        end
+    })
+end
+
+local function AddButton(tab, name, callback)
+    tab:AddButton({
+        Name = name,
+        Callback = function()
+            if callback then callback() end
+        end
+    })
+end
+
+local function AddParagraph(tab, title, content)
+    local paragraph = tab:AddParagraph(title, content or "")
+    local obj = {}
+    function obj:SetDesc(newContent)
+        pcall(function()
+            paragraph:Set(newContent or "")
+        end)
     end
-end)
+    return obj
+end
 
-local Window = KavoUI.CreateLib("IdkQqw's Project", "DarkTheme")
--- ============================================================
--- TỰ LÀM PHÍM TẮT BẬT/TẮT MENU (Kavo không có sẵn API)
--- ============================================================
-local KavoMenuOpen = true
+local function AddSlider(tab, name, min, max, default, increment, callback)
+    tab:AddSlider({
+        Name = name,
+        Min = min,
+        Max = max,
+        Default = default,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = increment or 1,
+        ValueName = "",
+        Callback = function(value)
+            if callback then callback(value) end
+        end
+    })
+end
 
-local function SetKavoVisible(visible)
-    KavoMenuOpen = visible
+local function AddTextBox(tab, name, default, callback)
+    tab:AddTextbox({
+        Name = name,
+        Default = default or "",
+        TextDisappear = false,
+        Callback = function(text)
+            if callback then callback(text) end
+        end
+    })
+end
+
+local function AddKeybind(tab, name, defaultKey, callback)
+    tab:AddBind({
+        Name = name,
+        Default = defaultKey or Enum.KeyCode.F,
+        Hold = false,
+        Callback = function()
+            if callback then callback() end
+        end
+    })
+end
+
+print("[IdkQqw] ✅ Orion UI Window created!")
+
+-- ============================================================
+-- KEYBIND TOGGLE MENU
+-- ============================================================
+local OrionMenuOpen = true
+local function SetOrionVisible(visible)
+    OrionMenuOpen = visible
     pcall(function()
         for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
-            if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+            if gui:IsA("ScreenGui") and gui.Name:lower():find("orion") then
                 gui.Enabled = visible
             end
         end
         if plr and plr:FindFirstChild("PlayerGui") then
             for _, gui in ipairs(plr.PlayerGui:GetChildren()) do
-                if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+                if gui:IsA("ScreenGui") and gui.Name:lower():find("orion") then
                     gui.Enabled = visible
                 end
             end
@@ -78,160 +193,15 @@ end
 game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.LeftControl then
-        SetKavoVisible(not KavoMenuOpen)
+        SetOrionVisible(not OrionMenuOpen)
     end
 end)
--- (Dán đoạn tự làm phím tắt ở trên vào đây nếu muốn giữ LeftControl)
-
--- ============================================================
--- CREATE TABS
--- ============================================================
-local Tabs = {
-    Info        = Window:NewTab("Info & Status"),
-    Main        = Window:NewTab("Farming"),
-    Settings    = Window:NewTab("Settings"),
-    Fish        = Window:NewTab("Fishing"),
-    Quests      = Window:NewTab("Quest & Item"),
-    SeaEvent    = Window:NewTab("Sea Event"),
-    Race        = Window:NewTab("Mirage & Race"),
-    Prehistoric = Window:NewTab("Volcano Event"),
-    Esp         = Window:NewTab("Stats & Esp"),
-    Raids       = Window:NewTab("Fruit & Raid"),
-    Combat      = Window:NewTab("Local Player"),
-    Travel      = Window:NewTab("Teleport"),
-    Shop        = Window:NewTab("Shopping"),
-    Misc        = Window:NewTab("Miscellaneous"),
-}
-
--- ============================================================
--- KAVO NOTIFY HELPER
--- ============================================================
-local function KavoNotify(title, content, duration)
-    pcall(function()
-        Window:Notification(title, content, duration or 5)
-    end)
-end
-
--- ============================================================
--- KAVO HELPERS (thay thế Rayfield)
--- ============================================================
-local function AddSection(tab, name)
-    return tab:NewSection(name)
-end
-
-local function AddToggle(tab, name, default, callback)
-    local state = { value = default or false }
-    tab:NewToggle(name, default or false, function(value)
-        state.value = value
-        if callback then callback(value) end
-    end)
-    return state
-end
-
-local function AddDropdown(tab, name, options, default, callback)
-    if not options or #options == 0 then options = {"None"} end
-    local current = default or options[1]
-    local dropdown
-    dropdown = tab:NewDropdown(name, options, function(value)
-        current = value
-        if callback then callback(value) end
-    end)
-    if default and default ~= options[1] then
-        pcall(function() dropdown:Set(default) end)
-    end
-    return dropdown
-end
-
-local function AddButton(tab, name, callback)
-    tab:NewButton(name, "Nhấn để thực hiện", function()
-        if callback then callback() end
-    end)
-end
-
-local function AddParagraph(tab, title, content)
-    -- Kavo UI có 3 phiên bản API khác nhau cho label/paragraph
-    -- Thử từng cái để tương thích ngược
-    local ok, label = pcall(function()
-        return tab:NewParagraph(title .. ": " .. (content or ""))
-    end)
-    
-    if not ok or not label then
-        ok, label = pcall(function()
-            return tab:NewLabel("[" .. title .. "] " .. (content or ""))
-        end)
-    end
-    
-    if not ok or not label then
-        -- Fallback nếu cả 2 hàm đều không tồn tại → dùng TextBox (chỉ đọc)
-        ok, label = pcall(function()
-            return tab:NewTextBox("[" .. title .. "]", content or "", function() end)
-        end)
-    end
-    
-    -- Nếu vẫn thất bại → trả về dummy object
-    if not ok or not label then
-        warn("[Kavo] Không thể tạo paragraph: " .. title)
-        return { SetDesc = function() end }
-    end
-    
-    -- Tạo object wrapper với hàm SetDesc để update động
-    local obj = {}
-    function obj:SetDesc(newContent)
-        pcall(function()
-            if label.Set then
-                label:Set("[" .. title .. "] " .. (newContent or ""))
-            elseif label.SetText then
-                label:SetText("[" .. title .. "] " .. (newContent or ""))
-            elseif label.TextLabel and label.TextLabel.Set then
-                label.TextLabel:Set("[" .. title .. "] " .. (newContent or ""))
-            end
-        end)
-    end
-    
-    -- Fallback: nếu label có hàm Set riêng cho Paragraph
-    if label.Set and not label.SetText then
-        function obj:SetDesc(newContent)
-            pcall(function()
-                label:Set("[" .. title .. "] " .. (newContent or ""))
-            end)
-        end
-    end
-    
-    return obj
-end
-
-local function AddSlider(tab, name, min, max, default, increment, callback)
-    local slider
-    slider = tab:NewSlider(name, max, min, default, function(value)
-        if callback then callback(value) end
-    end)
-    return slider
-end
-
-local function AddTextBox(tab, name, default, callback)
-    local box
-    box = tab:NewTextBox(name, default or "", function(text)
-        if callback then callback(text) end
-    end)
-    return box
-end
-
-local function AddKeybind(tab, name, defaultKey, callback)
-    local kb
-    kb = tab:NewKeybind(name, "Nhấn để đổi phím", defaultKey or Enum.KeyCode.F, function()
-        if callback then callback() end
-    end)
-    return kb
-end
-
-print("[IdkQqw] ✅ Kavo UI Window created!")
 
 -- ============================================================
 -- TAB: INFO & STATUS
 -- ============================================================
 AddSection(Tabs.Info, "Information")
-
-AddParagraph(Tabs.Info, "IdkQqw's Project", "Advanced Blox Fruits Script - Kavo UI")
+AddParagraph(Tabs.Info, "IdkQqw's Project", "Advanced Blox Fruits Script - Orion UI")
 
 local TimeZone_P = AddParagraph(Tabs.Info, "Time Zone", "Loading...")
 local GameTime_P = AddParagraph(Tabs.Info, "Game Time", "Loading...")
@@ -269,9 +239,7 @@ function UpdateOS()
     TimeZone_P:SetDesc(datetime.." - "..timezone.." [ " .. code .. " ]")
 end
 
-spawn(function()
-    while true do UpdateOS() wait(1) end
-end)
+spawn(function() while true do UpdateOS() wait(1) end end)
 
 function UpdateGameTime()
     local GameTimeValue = math.floor(workspace.DistributedGameTime + 0.5)
@@ -281,9 +249,7 @@ function UpdateGameTime()
     GameTime_P:SetDesc(Hour.." Hour (h) "..Minute.." Minute (m) "..Second.." Second (s)")
 end
 
-spawn(function()
-    while true do UpdateGameTime() wait(1) end
-end)
+spawn(function() while true do UpdateGameTime() wait(1) end end)
 
 local previousMirageStatus = ""
 spawn(function()
@@ -576,9 +542,8 @@ task.spawn(function()
         end
     end
 end)
-AddToggle(Tabs.Main, "Auto Farm Nearest", false, function(Value)
-    _G.AutoFarmNear = Value
-end)
+
+AddToggle(Tabs.Main, "Auto Farm Nearest", false, function(Value) _G.AutoFarmNear = Value end)
 
 spawn(function()
     while wait() do
@@ -596,9 +561,7 @@ spawn(function()
     end
 end)
 
-AddToggle(Tabs.Main, "Auto Factory Raid", false, function(Value)
-    _G.AutoFactory = Value
-end)
+AddToggle(Tabs.Main, "Auto Factory Raid", false, function(Value) _G.AutoFactory = Value end)
 
 spawn(function()
     while wait(Sec) do
@@ -618,9 +581,7 @@ spawn(function()
     end
 end)
 
-AddToggle(Tabs.Main, "Auto Pirate Raid", false, function(Value)
-    _G.AutoRaidCastle = Value
-end)
+AddToggle(Tabs.Main, "Auto Pirate Raid", false, function(Value) _G.AutoRaidCastle = Value end)
 
 spawn(function()
     while wait(Sec) do
@@ -652,9 +613,7 @@ spawn(function()
     end
 end)
 
-AddToggle(Tabs.Main, "Auto Farm Ectoplasm", false, function(Value)
-    _G.AutoEctoplasm = Value
-end)
+AddToggle(Tabs.Main, "Auto Farm Ectoplasm", false, function(Value) _G.AutoEctoplasm = Value end)
 
 spawn(function()
     while wait(Sec) do
@@ -674,9 +633,7 @@ end)
 
 AddSection(Tabs.Main, "Chest")
 
-AddToggle(Tabs.Main, "Auto Farm Chest", false, function(Value)
-    _G.AutoFarmChest = Value
-end)
+AddToggle(Tabs.Main, "Auto Farm Chest", false, function(Value) _G.AutoFarmChest = Value end)
 
 spawn(function()
     while wait(Sec) do
@@ -759,9 +716,7 @@ AddToggle(Tabs.Main, "Auto Chest Bypass", false, function(Value)
     end
 end)
 
-AddToggle(Tabs.Main, "Stop Items", true, function(Value)
-    _G.StopWhenChalice = Value
-end)
+AddToggle(Tabs.Main, "Stop Items", true, function(Value) _G.StopWhenChalice = Value end)
 
 spawn(function()
     while wait(0.2) do
@@ -778,9 +733,7 @@ end)
 
 AddSection(Tabs.Main, "Collect Berry")
 
-AddToggle(Tabs.Main, "Auto Farm Berry", false, function(Value)
-    _G.AutoBerry = Value
-end)
+AddToggle(Tabs.Main, "Auto Farm Berry", false, function(Value) _G.AutoBerry = Value end)
 
 spawn(function()
     while wait(Sec) do
@@ -808,9 +761,7 @@ spawn(function()
     end
 end)
 
-AddToggle(Tabs.Main, "Auto Farm Berry + Hop", false, function(Value)
-    _G.AutoBerryH = Value
-end)
+AddToggle(Tabs.Main, "Auto Farm Berry + Hop", false, function(Value) _G.AutoBerryH = Value end)
 
 spawn(function()
     while wait(Sec) do
@@ -850,8 +801,7 @@ spawn(function()
                     end
                 end
             end
-        end
-    end
+        end    end
 end)
 
 AddSection(Tabs.Main, "Farm Mob")
@@ -893,9 +843,7 @@ if World3 then
     }, nil, function(Value) getgenv().SelectMob = Value end)
 end
 
-AddToggle(Tabs.Main, "Auto Kill Mob", false, function(Value)
-    _G.AutoKillMob = Value
-end)
+AddToggle(Tabs.Main, "Auto Kill Mob", false, function(Value) _G.AutoKillMob = Value end)
 
 spawn(function()
     while wait() do
@@ -919,51 +867,46 @@ spawn(function()
         end
     end
 end)
+
 AddSection(Tabs.Main, "Farm All Island")
 
 local Sea1_Islands = {
-    ["Pirates"] = {
-        CFrame = CFrame.new(-2709.67944, 24.5206585, 2104.24585, -0.744724929, -3.97967455e-08, -0.667371571, 4.32403588e-08, 1, -1.07884304e-07, 0.667371571, -1.09201515e-07, -0.744724929),
-        Mobs = {"Bandit"}
-    },
-    ["Marine"] = {
-        CFrame = CFrame.new(-2709.67944, 24.5206585, 2104.24585, -0.744724929, -3.97967455e-08, -0.667371571, 4.32403588e-08, 1, -1.07884304e-07, 0.667371571, -1.09201515e-07, -0.744724929),
-        Mobs = {"Trainee"}
-    },
-    ["Jungle"] = { CFrame = CFrame.new(-1600, 36, 150), Mobs = {"Monkey", "Gorilla"} },
-    ["Pirate Village"] = { CFrame = CFrame.new(-1100, 4, 3850), Mobs = {"Pirate", "Brute"} },
-    ["Desert"] = { CFrame = CFrame.new(1090, 7, 4370), Mobs = {"Desert Bandit", "Desert Officer"} },
-    ["Frozen Village"] = { CFrame = CFrame.new(1200, 28, -1500), Mobs = {"Snow Bandit", "Snowman"} },
-    ["Marine Fortress"] = { CFrame = CFrame.new(-4500, 20, 4250), Mobs = {"Chief Petty Officer"} },
-    ["Skylands Lower"] = { CFrame = CFrame.new(-5000, 700, -2500), Mobs = {"Sky Bandit", "Dark Master"} },
-    ["Prison"] = { CFrame = CFrame.new(4875, 6, 735), Mobs = {"Prisoner", "Dangerous Prisoner"} },
-    ["Colosseum"] = { CFrame = CFrame.new(-1500, 60, -290), Mobs = {"Toga Warrior", "Gladiator"} },
-    ["Magma Village"] = { CFrame = CFrame.new(-5200, 8, 8400), Mobs = {"Military Soldier", "Military Spy"} },
-    ["Underwater City"] = { CFrame = CFrame.new(61160, 5, 1819), Mobs = {"Fishman Warrior", "Fishman Commando"} },
-    ["Skylands Upper"] = { CFrame = CFrame.new(-7880, 5545, -380), Mobs = {"Shanda", "Royal Squad", "Royal Soldier"} }
+    ["Pirates"] = {CFrame = CFrame.new(-2709.67944, 24.5206585, 2104.24585, -0.744724929, -3.97967455e-08, -0.667371571, 4.32403588e-08, 1, -1.07884304e-07, 0.667371571, -1.09201515e-07, -0.744724929), Mobs = {"Bandit"}},
+    ["Marine"] = {CFrame = CFrame.new(-2709.67944, 24.5206585, 2104.24585, -0.744724929, -3.97967455e-08, -0.667371571, 4.32403588e-08, 1, -1.07884304e-07, 0.667371571, -1.09201515e-07, -0.744724929), Mobs = {"Trainee"}},
+    ["Jungle"] = {CFrame = CFrame.new(-1600, 36, 150), Mobs = {"Monkey", "Gorilla"}},
+    ["Pirate Village"] = {CFrame = CFrame.new(-1100, 4, 3850), Mobs = {"Pirate", "Brute"}},
+    ["Desert"] = {CFrame = CFrame.new(1090, 7, 4370), Mobs = {"Desert Bandit", "Desert Officer"}},
+    ["Frozen Village"] = {CFrame = CFrame.new(1200, 28, -1500), Mobs = {"Snow Bandit", "Snowman"}},
+    ["Marine Fortress"] = {CFrame = CFrame.new(-4500, 20, 4250), Mobs = {"Chief Petty Officer"}},
+    ["Skylands Lower"] = {CFrame = CFrame.new(-5000, 700, -2500), Mobs = {"Sky Bandit", "Dark Master"}},
+    ["Prison"] = {CFrame = CFrame.new(4875, 6, 735), Mobs = {"Prisoner", "Dangerous Prisoner"}},
+    ["Colosseum"] = {CFrame = CFrame.new(-1500, 60, -290), Mobs = {"Toga Warrior", "Gladiator"}},
+    ["Magma Village"] = {CFrame = CFrame.new(-5200, 8, 8400), Mobs = {"Military Soldier", "Military Spy"}},
+    ["Underwater City"] = {CFrame = CFrame.new(61160, 5, 1819), Mobs = {"Fishman Warrior", "Fishman Commando"}},
+    ["Skylands Upper"] = {CFrame = CFrame.new(-7880, 5545, -380), Mobs = {"Shanda", "Royal Squad", "Royal Soldier"}}
 }
 
 local Sea2_Islands = {
-    ["Kingdom of Rose"] = { CFrame = CFrame.new(-321, 73, 297), Mobs = {"Raider", "Mercenary", "Swan Pirate", "Factory Staff"} },
-    ["Green Zone"] = { CFrame = CFrame.new(-2447, 73, -3211), Mobs = {"Marine Lieutenant", "Marine Captain"} },
-    ["Graveyard Island"] = { CFrame = CFrame.new(-9515, 142, 5536), Mobs = {"Zombie", "Vampire"} },
-    ["Snow Mountain"] = { CFrame = CFrame.new(561, 401, -5306), Mobs = {"Snow Trooper", "Winter Warrior"} },
-    ["Hot and Cold (Cold)"] = { CFrame = CFrame.new(-6026, 15, -5062), Mobs = {"Lab Subordinate", "Horned Warrior"} },
-    ["Hot and Cold (Hot)"] = { CFrame = CFrame.new(-5478, 15, -5240), Mobs = {"Magma Ninja", "Lava Pirate"} },
-    ["Cursed Ship"] = { CFrame = CFrame.new(902, 126, 33071), Mobs = {"Ship Deckhand", "Ship Engineer", "Ship Steward", "Ship Officer"} },
-    ["Ice Castle"] = { CFrame = CFrame.new(6137, 294, -6747), Mobs = {"Arctic Warrior", "Snow Lurker"} },
-    ["Forgotten Island"] = { CFrame = CFrame.new(-3043, 238, -10191), Mobs = {"Sea Soldier", "Water Fighter"} }
+    ["Kingdom of Rose"] = {CFrame = CFrame.new(-321, 73, 297), Mobs = {"Raider", "Mercenary", "Swan Pirate", "Factory Staff"}},
+    ["Green Zone"] = {CFrame = CFrame.new(-2447, 73, -3211), Mobs = {"Marine Lieutenant", "Marine Captain"}},
+    ["Graveyard Island"] = {CFrame = CFrame.new(-9515, 142, 5536), Mobs = {"Zombie", "Vampire"}},
+    ["Snow Mountain"] = {CFrame = CFrame.new(561, 401, -5306), Mobs = {"Snow Trooper", "Winter Warrior"}},
+    ["Hot and Cold (Cold)"] = {CFrame = CFrame.new(-6026, 15, -5062), Mobs = {"Lab Subordinate", "Horned Warrior"}},
+    ["Hot and Cold (Hot)"] = {CFrame = CFrame.new(-5478, 15, -5240), Mobs = {"Magma Ninja", "Lava Pirate"}},
+    ["Cursed Ship"] = {CFrame = CFrame.new(902, 126, 33071), Mobs = {"Ship Deckhand", "Ship Engineer", "Ship Steward", "Ship Officer"}},
+    ["Ice Castle"] = {CFrame = CFrame.new(6137, 294, -6747), Mobs = {"Arctic Warrior", "Snow Lurker"}},
+    ["Forgotten Island"] = {CFrame = CFrame.new(-3043, 238, -10191), Mobs = {"Sea Soldier", "Water Fighter"}}
 }
 
 local Sea3_Islands = {
-    ["Port Town"] = { CFrame = CFrame.new(-290, 44, 5450), Mobs = {"Pirate Millionaire", "Pistol Billionaire"} },
-    ["Hydra Island"] = { CFrame = CFrame.new(5228, 604, 345), Mobs = {"Dragon Crew Warrior", "Dragon Crew Archer", "Female Islander", "Giant Islander", "Training Dummy"} },
-    ["Great Tree"] = { CFrame = CFrame.new(2682, 1682, -7190), Mobs = {"Marine Commodore", "Marine Rear Admiral"} },
-    ["Floating Turtle"] = { CFrame = CFrame.new(-12000, 331, -8500), Mobs = {"Forest Pirate", "Mythological Pirate", "Jungle Pirate", "Musketeer Pirate", "Fishman Raider", "Fishman Captain"} },
-    ["Haunted Castle"] = { CFrame = CFrame.new(-9515, 142, 5536), Mobs = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"} },
-    ["Sea of Treats"] = { CFrame = CFrame.new(-1145, 13, -14450), Mobs = {"Peanut Scout", "Peanut President", "Ice Cream Commander", "Cookie Crafter", "Cake Guard", "Baking Staff", "Head Baker", "Cocoa Warrior", "Chocolate Bar Battler", "Sweet Thief", "Candy Rebel"} },
-    ["Tiki Outpost"] = { CFrame = CFrame.new(-16200, 90, -17300), Mobs = {"Isle Outlaw", "Island Boy", "Sun-kissed Warrior", "Isle Champion"} },
-    ["Submerged Island"] = { CFrame = CFrame.new(-3200, -10, -10000), Mobs = {"Reef Bandit", "Coral Pirate", "Sea Chanter", "Ocean Prophet", "High Disciple", "Grand Devotee"} }
+    ["Port Town"] = {CFrame = CFrame.new(-290, 44, 5450), Mobs = {"Pirate Millionaire", "Pistol Billionaire"}},
+    ["Hydra Island"] = {CFrame = CFrame.new(5228, 604, 345), Mobs = {"Dragon Crew Warrior", "Dragon Crew Archer", "Female Islander", "Giant Islander", "Training Dummy"}},
+    ["Great Tree"] = {CFrame = CFrame.new(2682, 1682, -7190), Mobs = {"Marine Commodore", "Marine Rear Admiral"}},
+    ["Floating Turtle"] = {CFrame = CFrame.new(-12000, 331, -8500), Mobs = {"Forest Pirate", "Mythological Pirate", "Jungle Pirate", "Musketeer Pirate", "Fishman Raider", "Fishman Captain"}},
+    ["Haunted Castle"] = {CFrame = CFrame.new(-9515, 142, 5536), Mobs = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}},
+    ["Sea of Treats"] = {CFrame = CFrame.new(-1145, 13, -14450), Mobs = {"Peanut Scout", "Peanut President", "Ice Cream Commander", "Cookie Crafter", "Cake Guard", "Baking Staff", "Head Baker", "Cocoa Warrior", "Chocolate Bar Battler", "Sweet Thief", "Candy Rebel"}},
+    ["Tiki Outpost"] = {CFrame = CFrame.new(-16200, 90, -17300), Mobs = {"Isle Outlaw", "Island Boy", "Sun-kissed Warrior", "Isle Champion"}},
+    ["Submerged Island"] = {CFrame = CFrame.new(-3200, -10, -10000), Mobs = {"Reef Bandit", "Coral Pirate", "Sea Chanter", "Ocean Prophet", "High Disciple", "Grand Devotee"}}
 }
 
 if World1 then
@@ -981,9 +924,7 @@ if World1 then IslandData = Sea1_Islands
 elseif World2 then IslandData = Sea2_Islands
 elseif World3 then IslandData = Sea3_Islands end
 
-AddToggle(Tabs.Main, "Auto Farm All Island", false, function(Value)
-    _G.AutoFarmIsland = Value
-end)
+AddToggle(Tabs.Main, "Auto Farm All Island", false, function(Value) _G.AutoFarmIsland = Value end)
 
 task.spawn(function()
     while task.wait(0.2) do
@@ -7088,7 +7029,7 @@ end
 StartMainLoops()
 
 -- ============================================================
--- FLOATING MOBILE BUTTON (KAVO)
+-- FLOATING MOBILE BUTTON (ORION)
 -- ============================================================
 local FloatingUI = {
     ScreenGui = nil, MainButton = nil, Label = nil,
@@ -7102,13 +7043,13 @@ local function SetMenuVisible(visible)
         local playerGui = plr:FindFirstChild("PlayerGui")
         if playerGui then
             for _, gui in ipairs(playerGui:GetChildren()) do
-                if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+                if gui:IsA("ScreenGui") and gui.Name:lower():find("orion") then
                     gui.Enabled = visible
                 end
             end
         end
         for _, gui in ipairs(CoreGui:GetChildren()) do
-            if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+            if gui:IsA("ScreenGui") and gui.Name:lower():find("orion") then
                 gui.Enabled = visible
             end
         end
@@ -7119,7 +7060,7 @@ end
 local function ToggleMenu()
     local newState = not FloatingUI.MenuOpen
     SetMenuVisible(newState)
-    KavoNotify("IdkQqw's Project", newState and "✅ Menu đã MỞ" or "❌ Menu đã ĐÓNG", 2)
+    OrionNotify("IdkQqw's Project", newState and "✅ Menu đã MỞ" or "❌ Menu đã ĐÓNG", 2)
 end
 
 local function CreateFloatingButton()
@@ -7280,14 +7221,14 @@ end)
 -- NOTIFY CUỐI
 -- ============================================================
 pcall(function()
-    KavoNotify("Menu Loaded!", "Nhấn LeftControl (PC) hoặc nút cyan (Mobile) để bật/tắt menu.", 6)
+    OrionNotify("Menu Loaded!", "Nhấn LeftControl (PC) hoặc nút cyan (Mobile) để bật/tắt menu.", 6)
 end)
 
 pcall(function()
-    KavoNotify("Thanks Alot!", "Enjoy The Private Only Script", 5)
+    OrionNotify("Thanks Alot!", "Enjoy The Private Only Script", 5)
 end)
 
-print("[IdkQqw Script] ✅ Loaded successfully with Kavo UI!")
-print("[DEBUG-A] Đã chạy tới DÒNG cuối - gần cuối")
-print("[DEBUG-B] Tổng số Tabs:", 14)
+print("[IdkQqw Script] ✅ Loaded successfully with Orion UI!")
+print("[DEBUG-A] Đã chạy tới DÒNG cuối")
+print("[DEBUG-B] Tổng số Tabs:", 11)
 print("[DEBUG-C] Script chạy xong 100%!")
