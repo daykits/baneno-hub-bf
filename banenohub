@@ -14,25 +14,90 @@ pcall(function()
 end)
 
 -- ============================================================
--- CREATE WINDOW
+-- XÓA TOPBAR CŨ TRƯỚC KHI TẠO RAYFIELD (chống conflict)
 -- ============================================================
-local Window = Rayfield:CreateWindow({
-    Name = "IdkQqw's Project",
-    Icon = 0,
-    LoadingTitle = "IdkQqw's Project",
-    LoadingSubtitle = "by @Winter Ushanka",
-    ConfigurationSaving = {
-        Enabled = false,
-        FolderName = "IdkQqwProject",
-        FileName = "IdkQqwConfig"
-    },
-    Discord = {
-        Enabled = false,
-        Invite = "QJDk3cAhk",
-        RememberJoins = true
-    },
-    KeySystem = false
-})
+pcall(function()
+    local CoreGui = game:GetService("CoreGui")
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            for _, desc in ipairs(gui:GetDescendants()) do
+                if desc.Name == "Topbar" or desc.Name == "TopBar" then
+                    pcall(function() desc:Destroy() end)
+                end
+            end
+            local name = gui.Name:lower()
+            if name:find("rayfield") or name:find("sirius") then
+                pcall(function() gui:Destroy() end)
+            end
+        end
+    end
+    if plr and plr:FindFirstChild("PlayerGui") then
+        for _, gui in ipairs(plr.PlayerGui:GetChildren()) do
+            if gui:IsA("ScreenGui") then
+                for _, desc in ipairs(gui:GetDescendants()) do
+                    if desc.Name == "Topbar" or desc.Name == "TopBar" then
+                        pcall(function() desc:Destroy() end)
+                    end
+                end
+            end
+        end
+    end
+end)
+task.wait(0.3)
+
+-- ============================================================
+-- TẠO RAYFIELD WINDOW VỚI PCALL
+-- ============================================================
+local Window
+local success, err = pcall(function()
+    Window = Rayfield:CreateWindow({
+        Name = "IdkQqw's Project",
+        Icon = 0,
+        LoadingTitle = "IdkQqw's Project",
+        LoadingSubtitle = "by @Winter Ushanka",
+        ConfigurationSaving = {
+            Enabled = false,
+            FolderName = "IdkQqwProject",
+            FileName = "IdkQqwConfig"
+        },
+        Discord = {
+            Enabled = false,
+            Invite = "QJDk3cAhk",
+            RememberJoins = true
+        },
+        KeySystem = false
+    })
+end)
+
+if not success or not Window then
+    warn("[IdkQqw] Rayfield CreateWindow failed:", err)
+    warn("[IdkQqw] Thử destroy Rayfield cũ và tạo lại...")
+    
+    pcall(function()
+        Rayfield:Destroy()
+    end)
+    
+    task.wait(1)
+    
+    success, err = pcall(function()
+        Window = Rayfield:CreateWindow({
+            Name = "IdkQqw's Project v2",
+            Icon = 0,
+            LoadingTitle = "IdkQqw's Project",
+            LoadingSubtitle = "by @Winter Ushanka",
+            ConfigurationSaving = { Enabled = false },
+            Discord = { Enabled = false },
+            KeySystem = false
+        })
+    end)
+    
+    if not success or not Window then
+        warn("[IdkQqw] Không thể tạo Rayfield window. Lỗi:", err)
+        return
+    end
+end
+
+print("[IdkQqw] ✅ Rayfield Window created!")
 
 -- ============================================================
 -- CREATE TABS
