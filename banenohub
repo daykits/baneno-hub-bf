@@ -51,7 +51,37 @@ pcall(function()
     end
 end)
 
-Window:ToggleKeybind(true, Enum.KeyCode.LeftControl)
+local Window = KavoUI.CreateLib("IdkQqw's Project", "DarkTheme")
+-- ============================================================
+-- TỰ LÀM PHÍM TẮT BẬT/TẮT MENU (Kavo không có sẵn API)
+-- ============================================================
+local KavoMenuOpen = true
+
+local function SetKavoVisible(visible)
+    KavoMenuOpen = visible
+    pcall(function()
+        for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+            if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+                gui.Enabled = visible
+            end
+        end
+        if plr and plr:FindFirstChild("PlayerGui") then
+            for _, gui in ipairs(plr.PlayerGui:GetChildren()) do
+                if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+                    gui.Enabled = visible
+                end
+            end
+        end
+    end)
+end
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.LeftControl then
+        SetKavoVisible(not KavoMenuOpen)
+    end
+end)
+-- (Dán đoạn tự làm phím tắt ở trên vào đây nếu muốn giữ LeftControl)
 
 -- ============================================================
 -- CREATE TABS
