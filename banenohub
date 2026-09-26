@@ -1,9 +1,24 @@
 -- ============================================================
 -- LOAD KAVO UI
 -- ============================================================
-local KavoUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local KavoUI
+local ok = pcall(function()
+    KavoUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+end)
 
--- Xóa GUI cũ nếu có
+if not ok or not KavoUI or not KavoUI.CreateLib then
+    warn("[KAVO] Thử URL dự phòng...")
+    ok = pcall(function()
+        KavoUI = loadstring(game:HttpGet("https://github.com/xHeptc/Kavo-UI-Library/raw/main/source.lua"))()
+    end)
+end
+
+if not ok or not KavoUI or not KavoUI.CreateLib then
+    warn("[KAVO] ❌ Không thể load Kavo UI Library. Dừng script.")
+    return
+end
+
+-- Xóa GUI cũ
 pcall(function()
     for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
         if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield") or gui.Name:lower():find("sirius")) then
@@ -12,7 +27,7 @@ pcall(function()
     end
     if plr and plr:FindFirstChild("PlayerGui") then
         for _, gui in ipairs(plr.PlayerGui:GetChildren()) do
-            if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield") or gui.Name:lower():find("sirius")) then
+            if gui:IsA("ScreenGui") and (gui.Name:lower():find("kavo") or gui.Name:lower():find("rayfield")) then
                 gui:Destroy()
             end
         end
@@ -24,6 +39,18 @@ task.wait(0.3)
 -- TẠO KAVO WINDOW
 -- ============================================================
 local Window = KavoUI.CreateLib("IdkQqw's Project", "DarkTheme")
+task.wait(0.2)  -- 👈 QUAN TRỌNG: đợi Kavo render xong
+
+-- Đảm bảo DisplayOrder cao
+pcall(function()
+    for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+        if gui:IsA("ScreenGui") and gui.Name:lower():find("kavo") then
+            gui.DisplayOrder = 999999
+            gui.IgnoreGuiInset = true
+        end
+    end
+end)
+
 Window:ToggleKeybind(true, Enum.KeyCode.LeftControl)
 
 -- ============================================================
