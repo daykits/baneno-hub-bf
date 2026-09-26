@@ -149,13 +149,54 @@ local function AddButton(tab, name, callback)
 end
 
 local function AddParagraph(tab, title, content)
-    local label = tab:NewLabel("[" .. title .. "] " .. (content or ""))
+    -- Kavo UI có 3 phiên bản API khác nhau cho label/paragraph
+    -- Thử từng cái để tương thích ngược
+    local ok, label = pcall(function()
+        return tab:NewParagraph(title .. ": " .. (content or ""))
+    end)
+    
+    if not ok or not label then
+        ok, label = pcall(function()
+            return tab:NewLabel("[" .. title .. "] " .. (content or ""))
+        end)
+    end
+    
+    if not ok or not label then
+        -- Fallback nếu cả 2 hàm đều không tồn tại → dùng TextBox (chỉ đọc)
+        ok, label = pcall(function()
+            return tab:NewTextBox("[" .. title .. "]", content or "", function() end)
+        end)
+    end
+    
+    -- Nếu vẫn thất bại → trả về dummy object
+    if not ok or not label then
+        warn("[Kavo] Không thể tạo paragraph: " .. title)
+        return { SetDesc = function() end }
+    end
+    
+    -- Tạo object wrapper với hàm SetDesc để update động
     local obj = {}
     function obj:SetDesc(newContent)
         pcall(function()
-            label:Set("[" .. title .. "] " .. (newContent or ""))
+            if label.Set then
+                label:Set("[" .. title .. "] " .. (newContent or ""))
+            elseif label.SetText then
+                label:SetText("[" .. title .. "] " .. (newContent or ""))
+            elseif label.TextLabel and label.TextLabel.Set then
+                label.TextLabel:Set("[" .. title .. "] " .. (newContent or ""))
+            end
         end)
     end
+    
+    -- Fallback: nếu label có hàm Set riêng cho Paragraph
+    if label.Set and not label.SetText then
+        function obj:SetDesc(newContent)
+            pcall(function()
+                label:Set("[" .. title .. "] " .. (newContent or ""))
+            end)
+        end
+    end
+    
     return obj
 end
 
