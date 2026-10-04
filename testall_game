@@ -1,9 +1,10 @@
 --// DATKITS HUB PREMIUM
---// Red Theme + Open/Close Menu + Noclip + Infinite Jump + Godmode
+--// Red Theme + Open/Close Menu + Noclip + Infinite Jump + Godmode + Fly
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -24,8 +25,13 @@ local SpeedOverrideEnabled = false
 local NoclipEnabled = false
 local InfiniteJumpEnabled = false
 local GodmodeEnabled = false
+local FlyEnabled = false
 local TargetSpeed = 700
 local MenuOpen = true
+
+--// FLY SETTINGS
+local FlySpeed = 100
+local FlyKey = Enum.KeyCode.F -- Phím bật/tắt bay nhanh (tùy chọn)
 
 --// COLORS
 local RED = Color3.fromRGB(220, 40, 55)
@@ -70,8 +76,8 @@ MenuStroke.Parent = MenuButton
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 240, 0, 355)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -177)
 MainFrame.BackgroundColor3 = BACKGROUND
 MainFrame.BackgroundTransparency = 0.35
 MainFrame.BorderSizePixel = 0
@@ -248,6 +254,22 @@ local GodmodeCorner = Instance.new("UICorner")
 GodmodeCorner.CornerRadius = UDim.new(0, 7)
 GodmodeCorner.Parent = GodmodeButton
 
+--// FLY BUTTON (MỚI)
+local FlyButton = Instance.new("TextButton")
+FlyButton.Parent = Content
+FlyButton.Size = UDim2.new(1, 0, 0, 35)
+FlyButton.Position = UDim2.new(0, 0, 0, 172)
+FlyButton.BackgroundColor3 = BUTTON
+FlyButton.Text = "Fly : OFF"
+FlyButton.TextColor3 = TEXT
+FlyButton.TextSize = 13
+FlyButton.Font = Enum.Font.GothamBold
+FlyButton.AutoButtonColor = false
+
+local FlyCorner = Instance.new("UICorner")
+FlyCorner.CornerRadius = UDim.new(0, 7)
+FlyCorner.Parent = FlyButton
+
 --// MISC CONTENT
 local MiscContent = Instance.new("Frame")
 MiscContent.Parent = MainFrame
@@ -384,6 +406,167 @@ GodmodeButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+--// FLY TOGGLE
+FlyButton.MouseButton1Click:Connect(function()
+	FlyEnabled = not FlyEnabled
+
+	if FlyEnabled then
+		FlyButton.Text = "Fly : ON"
+		FlyButton.BackgroundColor3 = RED
+	else
+		FlyButton.Text = "Fly : OFF"
+		FlyButton.BackgroundColor3 = BUTTON
+	end
+end)
+
+--// ======================= FLY SYSTEM =======================
+local FlyConnection
+local BodyVelocity
+local BodyGyro
+local FlySpeedValue = FlySpeed
+
+local function StopFly()
+	if FlyConnection then
+		FlyConnection:Disconnect()
+		FlyConnection = nil
+	end
+
+	local Character = LocalPlayer.Character
+	if Character then
+		local root = Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
+			if BodyGyro then BodyGyro:Destroy() BodyGyro = nil end
+		end
+	end
+end
+
+local function StartFly()
+	StopFly()
+
+	local Character = LocalPlayer.Character
+	if not Character then return end
+
+	local root = Character:FindFirstChild("HumanoidRootPart")
+	local humanoid = Character:FindFirstChildOfClass("Humanoid")
+	if not root or not humanoid then return end
+
+	-- Tạo BodyVelocity để điều khiển hướng bay
+	BodyVelocity = Instance.new("BodyVelocity")
+	BodyVelocity.Name = "DATKITS_FlyVelocity"
+	BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+	BodyVelocity.Velocity = Vector3.zero
+	BodyVelocity.Parent = root
+
+	-- Tạo BodyGyro để giữ thăng bằng
+	BodyGyro = Instance.new("BodyGyro")
+	BodyGyro.Name = "DATKITS_FlyGyro"
+	BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+	BodyGyro.P = 1000
+	BodyGyro.D = 50
+	BodyGyro.CFrame = root.CFrame
+	BodyGyro.Parent = root
+
+	-- Trạng thái bay
+	humanoid.PlatformStand = true
+
+	-- Xử lý input
+	local camera = Workspace.CurrentCamera
+
+	FlyConnection = RunService.RenderStepped:Connect(function()
+		if not FlyEnabled then
+			StopFly()
+			if humanoid then
+				humanoid.PlatformStand = false
+			end
+			return
+		end
+
+		if not root or not root.Parent then
+			StopFly()
+			return
+		end
+
+		local direction = Vector3.zero
+
+		-- PC: WASD
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			direction += camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			direction -= camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			direction -= camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			direction += camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			direction += Vector3.new(0, 1, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			direction -= Vector3.new(0, 1, 0)
+		end
+
+		-- Mobile: dùng chuyển động của Humanoid
+		local moveDir = humanoid.MoveDirection
+		if moveDir.Magnitude > 0 then
+			direction += moveDir
+		end
+
+		-- Áp dụng vận tốc
+		if direction.Magnitude > 0 then
+			BodyVelocity.Velocity = direction.Unit * FlySpeedValue
+		else
+			BodyVelocity.Velocity = Vector3.zero
+		end
+
+		-- Giữ nhân vật thẳng đứng theo camera
+		BodyGyro.CFrame = CFrame.new(root.Position, root.Position + camera.CFrame.LookVector)
+	end)
+end
+
+--// FLY LOOP: tự bật/tắt khi toggle thay đổi
+task.spawn(function()
+	local wasEnabled = false
+	while ScreenGui and ScreenGui.Parent do
+		if FlyEnabled and not wasEnabled then
+			wasEnabled = true
+			StartFly()
+		elseif not FlyEnabled and wasEnabled then
+			wasEnabled = false
+			StopFly()
+			local Character = LocalPlayer.Character
+			if Character then
+				local humanoid = Character:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid.PlatformStand = false
+				end
+			end
+		end
+		task.wait(0.1)
+	end
+end)
+
+--// Phím tắt F để bật/tắt Fly
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == FlyKey then
+		FlyEnabled = not FlyEnabled
+
+		if FlyEnabled then
+			FlyButton.Text = "Fly : ON"
+			FlyButton.BackgroundColor3 = RED
+		else
+			FlyButton.Text = "Fly : OFF"
+			FlyButton.BackgroundColor3 = BUTTON
+		end
+	end
+end)
+
+--// ======================= KẾT THÚC FLY SYSTEM =======================
+
 --// INFINITE JUMP HANDLER
 UserInputService.JumpRequest:Connect(function()
 	if not InfiniteJumpEnabled then
@@ -503,14 +686,14 @@ ScaleButton.MouseButton1Click:Connect(function()
 		0,
 		240 * Scale,
 		0,
-		310 * Scale
+		355 * Scale
 	)
 
 	MainFrame.Position = UDim2.new(
 		0.5,
 		-(120 * Scale),
 		0.5,
-		-(155 * Scale)
+		-(177 * Scale)
 	)
 end)
 
@@ -604,6 +787,12 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 			Humanoid.Health = math.huge
 		end
 	end
+
+	-- Nếu đang bay, tự khởi động lại fly
+	if FlyEnabled then
+		task.wait(0.5)
+		StartFly()
+	end
 end)
 
-print("DATKITS HUB PREMIUM loaded.")
+print("DATKITS HUB PREMIUM loaded. (Fly added)")
