@@ -84,12 +84,12 @@ MenuStroke.Color = RED
 MenuStroke.Thickness = 2
 MenuStroke.Parent = MenuButton
 
---// MAIN FRAME
+--// MAIN FRAME (Tăng chiều cao lên 350 để chứa đủ 5 nút)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 310)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
+MainFrame.Size = UDim2.new(0, 240, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -175)
 MainFrame.BackgroundColor3 = BACKGROUND
 MainFrame.BackgroundTransparency = 0.35
 MainFrame.BorderSizePixel = 0
@@ -194,10 +194,10 @@ local MiscCorner = Instance.new("UICorner")
 MiscCorner.CornerRadius = UDim.new(0, 7)
 MiscCorner.Parent = MiscTab
 
---// CONTENT
+--// CONTENT (Tăng chiều cao lên 260 để chứa đủ 5 nút)
 local Content = Instance.new("Frame")
 Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 220)
+Content.Size = UDim2.new(1, -20, 0, 260)
 Content.Position = UDim2.new(0, 10, 0, 78)
 Content.BackgroundTransparency = 1
 Content.ZIndex = 3
@@ -266,7 +266,7 @@ local InfJumpCorner = Instance.new("UICorner")
 InfJumpCorner.CornerRadius = UDim.new(0, 7)
 InfJumpCorner.Parent = InfJumpButton
 
---// GODMODE BUTTON
+--// GODMODE BUTTON (Thêm mới - vị trí 172)
 local GodmodeButton = Instance.new("TextButton")
 GodmodeButton.Parent = Content
 GodmodeButton.Size = UDim2.new(1, 0, 0, 35)
@@ -554,14 +554,14 @@ ScaleButton.MouseButton1Click:Connect(function()
 		0,
 		240 * Scale,
 		0,
-		310 * Scale
+		350 * Scale
 	)
 
 	MainFrame.Position = UDim2.new(
 		0.5,
 		-(120 * Scale),
 		0.5,
-		-(155 * Scale)
+		-(175 * Scale)
 	)
 end)
 
