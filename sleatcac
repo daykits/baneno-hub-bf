@@ -1,6 +1,5 @@
-
 --// DATKITS HUB PREMIUM
---// Red Theme + Open/Close Menu
+--// Red Theme + Open/Close Menu + Noclip
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -25,6 +24,7 @@ end
 --// STATE
 local AntiHitEnabled = false
 local SpeedOverrideEnabled = false
+local NoclipEnabled = false
 local TargetSpeed = 700
 local IsTeleporting = false
 local MenuOpen = true
@@ -85,8 +85,8 @@ MenuStroke.Parent = MenuButton
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 170)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -85)
+MainFrame.Size = UDim2.new(0, 240, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -110)
 MainFrame.BackgroundColor3 = BACKGROUND
 MainFrame.BackgroundTransparency = 0.35
 MainFrame.BorderSizePixel = 0
@@ -194,7 +194,7 @@ MiscCorner.Parent = MiscTab
 --// CONTENT
 local Content = Instance.new("Frame")
 Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 88)
+Content.Size = UDim2.new(1, -20, 0, 130)
 Content.Position = UDim2.new(0, 10, 0, 78)
 Content.BackgroundTransparency = 1
 Content.ZIndex = 3
@@ -231,6 +231,22 @@ local SpeedCorner = Instance.new("UICorner")
 SpeedCorner.CornerRadius = UDim.new(0, 7)
 SpeedCorner.Parent = SpeedButton
 
+--// NOCLIP BUTTON
+local NoclipButton = Instance.new("TextButton")
+NoclipButton.Parent = Content
+NoclipButton.Size = UDim2.new(1, 0, 0, 35)
+NoclipButton.Position = UDim2.new(0, 0, 0, 86)
+NoclipButton.BackgroundColor3 = BUTTON
+NoclipButton.Text = "Noclip : OFF"
+NoclipButton.TextColor3 = TEXT
+NoclipButton.TextSize = 13
+NoclipButton.Font = Enum.Font.GothamBold
+NoclipButton.AutoButtonColor = false
+
+local NoclipCorner = Instance.new("UICorner")
+NoclipCorner.CornerRadius = UDim.new(0, 7)
+NoclipCorner.Parent = NoclipButton
+
 --// MISC CONTENT
 local MiscContent = Instance.new("Frame")
 MiscContent.Parent = MainFrame
@@ -252,9 +268,9 @@ BackgroundButton.TextSize = 13
 BackgroundButton.Font = Enum.Font.GothamBold
 BackgroundButton.AutoButtonColor = false
 
-local BackgroundCorner = Instance.new("UICorner")
-BackgroundCorner.CornerRadius = UDim.new(0, 7)
-BackgroundCorner.Parent = BackgroundButton
+local BackgroundCorner2 = Instance.new("UICorner")
+BackgroundCorner2.CornerRadius = UDim.new(0, 7)
+BackgroundCorner2.Parent = BackgroundButton
 
 -- Scale selector
 local ScaleButton = Instance.new("TextButton")
@@ -318,6 +334,43 @@ SpeedButton.MouseButton1Click:Connect(function()
 			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 			if Humanoid then
 				Humanoid.WalkSpeed = 16
+			end
+		end
+	end
+end)
+
+--// NOCLIP TOGGLE
+NoclipButton.MouseButton1Click:Connect(function()
+	NoclipEnabled = not NoclipEnabled
+
+	if NoclipEnabled then
+		NoclipButton.Text = "Noclip : ON"
+		NoclipButton.BackgroundColor3 = RED
+	else
+		NoclipButton.Text = "Noclip : OFF"
+		NoclipButton.BackgroundColor3 = BUTTON
+
+		-- Restore collisions when disabling
+		local Character = LocalPlayer.Character
+		if Character then
+			for _, part in ipairs(Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = true
+				end
+			end
+		end
+	end
+end)
+
+--// NOCLIP LOOP
+RunService.Heartbeat:Connect(function()
+	if NoclipEnabled then
+		local Character = LocalPlayer.Character
+		if Character then
+			for _, part in ipairs(Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
 			end
 		end
 	end
@@ -390,14 +443,14 @@ ScaleButton.MouseButton1Click:Connect(function()
 		0,
 		240 * Scale,
 		0,
-		170 * Scale
+		220 * Scale
 	)
 
 	MainFrame.Position = UDim2.new(
 		0.5,
 		-(120 * Scale),
 		0.5,
-		-(85 * Scale)
+		-(110 * Scale)
 	)
 end)
 
@@ -596,6 +649,15 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 			Humanoid.WalkSpeed = TargetSpeed
 		end
 	end
+
+	-- Re-apply noclip after respawn
+	if NoclipEnabled then
+		for _, part in ipairs(Character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
 end)
 
-print("VIREX HUB SAE loaded.")
+print("DATKITS HUB PREMIUM loaded.")
