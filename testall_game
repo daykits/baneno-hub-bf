@@ -427,12 +427,19 @@ GodmodeButton.MouseButton1Click:Connect(function()
 		GodmodeButton.Text = "Godmode : OFF"
 		GodmodeButton.BackgroundColor3 = BUTTON
 
+		-- Tắt godmode: khôi phục máu bình thường
 		local Character = LocalPlayer.Character
 		if Character then
 			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 			if Humanoid then
 				Humanoid.MaxHealth = 100
 				Humanoid.Health = 100
+			end
+
+			-- Xóa ForceField nếu có
+			local ff = Character:FindFirstChildOfClass("ForceField")
+			if ff then
+				ff:Destroy()
 			end
 		end
 	end
@@ -469,6 +476,100 @@ local function TeleportToTarget()
 end
 
 TeleportButton.MouseButton1Click:Connect(TeleportToTarget)
+
+--// ======================= GODMODE SYSTEM (NÂNG CẤP) =======================
+-- Lớp 1: Máu vô cực + ForceField liên tục
+-- Lớp 2: Chặn Died (nếu chết thì hồi sinh máu)
+-- Lớp 3: Hook HealthChanged để giữ máu luôn đầy
+
+local GodmodeConnections = {}
+
+local function ClearGodmodeConnections()
+	for _, conn in ipairs(GodmodeConnections) do
+		if conn and conn.Disconnect then
+			conn:Disconnect()
+		end
+	end
+	GodmodeConnections = {}
+end
+
+local function ApplyGodmode(Character)
+	ClearGodmodeConnections()
+
+	local Humanoid = Character:WaitForChild("Humanoid", 5)
+	if not Humanoid then return end
+
+	-- Lớp 1: Máu vô cực ngay lập tức
+	Humanoid.MaxHealth = math.huge
+	Humanoid.Health = math.huge
+
+	-- ForceField để chặn damage từ server
+	if not Character:FindFirstChildOfClass("ForceField") then
+		local ff = Instance.new("ForceField")
+		ff.Visible = false
+		ff.Parent = Character
+	end
+
+	-- Lớp 2: Chặn Died
+	local diedConn = Humanoid.Died:Connect(function()
+		if GodmodeEnabled then
+			task.wait(0.1)
+			Humanoid.Health = math.huge
+		end
+	end)
+	table.insert(GodmodeConnections, diedConn)
+
+	-- Lớp 3: Hook HealthChanged
+	local healthConn = Humanoid.HealthChanged:Connect(function(health)
+		if GodmodeEnabled and health < Humanoid.MaxHealth then
+			Humanoid.Health = Humanoid.MaxHealth
+		end
+	end)
+	table.insert(GodmodeConnections, healthConn)
+end
+
+--// GODMODE LOOP: Duy trì máu + ForceField
+RunService.Heartbeat:Connect(function()
+	if not GodmodeEnabled then
+		return
+	end
+
+	local Character = LocalPlayer.Character
+	if not Character then return end
+
+	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+	if not Humanoid then return end
+
+	-- Duy trì máu vô cực
+	if Humanoid.MaxHealth ~= math.huge then
+		Humanoid.MaxHealth = math.huge
+	end
+	if Humanoid.Health ~= math.huge then
+		Humanoid.Health = math.huge
+	end
+
+	-- Duy trì ForceField
+	if not Character:FindFirstChildOfClass("ForceField") then
+		local ff = Instance.new("ForceField")
+		ff.Visible = false
+		ff.Parent = Character
+	end
+end)
+
+-- Áp dụng godmode khi nhân vật spawn
+if LocalPlayer.Character then
+	ApplyGodmode(LocalPlayer.Character)
+end
+
+LocalPlayer.CharacterAdded:Connect(function(Character)
+	task.wait(1)
+
+	if GodmodeEnabled then
+		ApplyGodmode(Character)
+	end
+end)
+
+--// ======================= KẾT THÚC GODMODE SYSTEM =======================
 
 --// ======================= FLY SYSTEM =======================
 local FlyConnection
@@ -630,20 +731,6 @@ UserInputService.JumpRequest:Connect(function()
 	end
 
 	Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-end)
-
---// GODMODE LOOP
-RunService.Heartbeat:Connect(function()
-	if GodmodeEnabled then
-		local Character = LocalPlayer.Character
-		if Character then
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-			if Humanoid then
-				Humanoid.MaxHealth = math.huge
-				Humanoid.Health = math.huge
-			end
-		end
-	end
 end)
 
 --// NOCLIP LOOP
@@ -821,13 +908,8 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 		end
 	end
 
-	if GodmodeEnabled then
-		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-		if Humanoid then
-			Humanoid.MaxHealth = math.huge
-			Humanoid.Health = math.huge
-		end
-	end
+	-- Godmode đã được xử lý riêng ở block GODMODE SYSTEM phía trên
+	-- nhưng vẫn giữ ở đây để đảm bảo áp dụng ngay
 
 	if FlyEnabled then
 		task.wait(0.5)
@@ -835,4 +917,4 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 	end
 end)
 
-print("DATKITS HUB PREMIUM loaded. (Fly + Teleport added)")
+print("DATKITS HUB PREMIUM loaded. (Fly + Teleport + Godmode nâng cấp)")
