@@ -34,7 +34,7 @@ local FlySpeed = 100
 local FlyKey = Enum.KeyCode.F
 
 --// TELEPORT SETTINGS
-local TeleportTarget = Vector3.new(-414.26, 504.05, 190.10)
+local TeleportTarget = Vector3.new(-4634 33, 571.49, 5158.27)
 
 --// COLORS
 local RED = Color3.fromRGB(220, 40, 55)
