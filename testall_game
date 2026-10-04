@@ -1,5 +1,5 @@
 --// DATKITS HUB PREMIUM
---// Red Theme + Open/Close Menu + Noclip + Infinite Jump + Godmode + Fly
+--// Red Theme + Open/Close Menu + Noclip + Infinite Jump + Godmode + Fly + Teleport
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -31,7 +31,10 @@ local MenuOpen = true
 
 --// FLY SETTINGS
 local FlySpeed = 100
-local FlyKey = Enum.KeyCode.F -- Phím bật/tắt bay nhanh (tùy chọn)
+local FlyKey = Enum.KeyCode.F
+
+--// TELEPORT SETTINGS
+local TeleportTarget = Vector3.new(-414.26, 504.05, 190.10)
 
 --// COLORS
 local RED = Color3.fromRGB(220, 40, 55)
@@ -254,7 +257,7 @@ local GodmodeCorner = Instance.new("UICorner")
 GodmodeCorner.CornerRadius = UDim.new(0, 7)
 GodmodeCorner.Parent = GodmodeButton
 
---// FLY BUTTON (MỚI)
+--// FLY BUTTON
 local FlyButton = Instance.new("TextButton")
 FlyButton.Parent = Content
 FlyButton.Size = UDim2.new(1, 0, 0, 35)
@@ -310,6 +313,35 @@ ScaleButton.AutoButtonColor = false
 local ScaleCorner = Instance.new("UICorner")
 ScaleCorner.CornerRadius = UDim.new(0, 7)
 ScaleCorner.Parent = ScaleButton
+
+--// TELEPORT TO TARGET BUTTON (MỚI)
+local TeleportButton = Instance.new("TextButton")
+TeleportButton.Parent = MiscContent
+TeleportButton.Size = UDim2.new(1, 0, 0, 35)
+TeleportButton.Position = UDim2.new(0, 0, 0, 86)
+TeleportButton.BackgroundColor3 = BUTTON
+TeleportButton.Text = "Teleport to Target"
+TeleportButton.TextColor3 = TEXT
+TeleportButton.TextSize = 13
+TeleportButton.Font = Enum.Font.GothamBold
+TeleportButton.AutoButtonColor = false
+
+local TeleportCorner = Instance.new("UICorner")
+TeleportCorner.CornerRadius = UDim.new(0, 7)
+TeleportCorner.Parent = TeleportButton
+
+--// HIỂN THỊ TỌA ĐỘ TARGET
+local TargetLabel = Instance.new("TextLabel")
+TargetLabel.Parent = MiscContent
+TargetLabel.Size = UDim2.new(1, 0, 0, 20)
+TargetLabel.Position = UDim2.new(0, 0, 0, 125)
+TargetLabel.BackgroundTransparency = 1
+TargetLabel.Text = string.format("Target: %.2f, %.2f, %.2f", TeleportTarget.X, TeleportTarget.Y, TeleportTarget.Z)
+TargetLabel.TextColor3 = LIGHT_RED
+TargetLabel.TextSize = 11
+TargetLabel.Font = Enum.Font.Gotham
+TargetLabel.TextXAlignment = Enum.TextXAlignment.Center
+TargetLabel.ZIndex = 3
 
 --// TAB SWITCHING
 MainTab.MouseButton1Click:Connect(function()
@@ -419,6 +451,27 @@ FlyButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+--// TELEPORT FUNCTION
+local function TeleportToTarget()
+	local Character = LocalPlayer.Character
+	if not Character then return end
+
+	local root = Character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	-- Dùng PivotTo để dịch chuyển cả nhân vật
+	Character:PivotTo(CFrame.new(TeleportTarget))
+
+	-- Hiệu ứng nhấp nháy nút
+	TeleportButton.Text = "Teleported!"
+	TeleportButton.BackgroundColor3 = RED
+	task.wait(0.6)
+	TeleportButton.Text = "Teleport to Target"
+	TeleportButton.BackgroundColor3 = BUTTON
+end
+
+TeleportButton.MouseButton1Click:Connect(TeleportToTarget)
+
 --// ======================= FLY SYSTEM =======================
 local FlyConnection
 local BodyVelocity
@@ -451,14 +504,12 @@ local function StartFly()
 	local humanoid = Character:FindFirstChildOfClass("Humanoid")
 	if not root or not humanoid then return end
 
-	-- Tạo BodyVelocity để điều khiển hướng bay
 	BodyVelocity = Instance.new("BodyVelocity")
 	BodyVelocity.Name = "DATKITS_FlyVelocity"
 	BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 	BodyVelocity.Velocity = Vector3.zero
 	BodyVelocity.Parent = root
 
-	-- Tạo BodyGyro để giữ thăng bằng
 	BodyGyro = Instance.new("BodyGyro")
 	BodyGyro.Name = "DATKITS_FlyGyro"
 	BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -467,10 +518,8 @@ local function StartFly()
 	BodyGyro.CFrame = root.CFrame
 	BodyGyro.Parent = root
 
-	-- Trạng thái bay
 	humanoid.PlatformStand = true
 
-	-- Xử lý input
 	local camera = Workspace.CurrentCamera
 
 	FlyConnection = RunService.RenderStepped:Connect(function()
@@ -489,7 +538,6 @@ local function StartFly()
 
 		local direction = Vector3.zero
 
-		-- PC: WASD
 		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
 			direction += camera.CFrame.LookVector
 		end
@@ -509,25 +557,21 @@ local function StartFly()
 			direction -= Vector3.new(0, 1, 0)
 		end
 
-		-- Mobile: dùng chuyển động của Humanoid
 		local moveDir = humanoid.MoveDirection
 		if moveDir.Magnitude > 0 then
 			direction += moveDir
 		end
 
-		-- Áp dụng vận tốc
 		if direction.Magnitude > 0 then
 			BodyVelocity.Velocity = direction.Unit * FlySpeedValue
 		else
 			BodyVelocity.Velocity = Vector3.zero
 		end
 
-		-- Giữ nhân vật thẳng đứng theo camera
 		BodyGyro.CFrame = CFrame.new(root.Position, root.Position + camera.CFrame.LookVector)
 	end)
 end
 
---// FLY LOOP: tự bật/tắt khi toggle thay đổi
 task.spawn(function()
 	local wasEnabled = false
 	while ScreenGui and ScreenGui.Parent do
@@ -549,7 +593,6 @@ task.spawn(function()
 	end
 end)
 
---// Phím tắt F để bật/tắt Fly
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
 	if input.KeyCode == FlyKey then
@@ -788,11 +831,10 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 		end
 	end
 
-	-- Nếu đang bay, tự khởi động lại fly
 	if FlyEnabled then
 		task.wait(0.5)
 		StartFly()
 	end
 end)
 
-print("DATKITS HUB PREMIUM loaded. (Fly added)")
+print("DATKITS HUB PREMIUM loaded. (Fly + Teleport added)")
