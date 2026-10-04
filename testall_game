@@ -79,8 +79,8 @@ MenuStroke.Parent = MenuButton
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 355)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -177)
+MainFrame.Size = UDim2.new(0, 240, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -210)
 MainFrame.BackgroundColor3 = BACKGROUND
 MainFrame.BackgroundTransparency = 0.35
 MainFrame.BorderSizePixel = 0
@@ -185,10 +185,10 @@ local MiscCorner = Instance.new("UICorner")
 MiscCorner.CornerRadius = UDim.new(0, 7)
 MiscCorner.Parent = MiscTab
 
---// CONTENT
+--// CONTENT (tab Main)
 local Content = Instance.new("Frame")
 Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 260)
+Content.Size = UDim2.new(1, -20, 0, 320)
 Content.Position = UDim2.new(0, 10, 0, 78)
 Content.BackgroundTransparency = 1
 Content.ZIndex = 3
@@ -276,8 +276,8 @@ FlyCorner.Parent = FlyButton
 --// MISC CONTENT
 local MiscContent = Instance.new("Frame")
 MiscContent.Parent = MainFrame
-MiscContent.Size = Content.Size
-MiscContent.Position = Content.Position
+MiscContent.Size = UDim2.new(1, -20, 0, 320)
+MiscContent.Position = UDim2.new(0, 10, 0, 78)
 MiscContent.BackgroundTransparency = 1
 MiscContent.Visible = false
 MiscContent.ZIndex = 3
@@ -314,7 +314,7 @@ local ScaleCorner = Instance.new("UICorner")
 ScaleCorner.CornerRadius = UDim.new(0, 7)
 ScaleCorner.Parent = ScaleButton
 
---// TELEPORT TO TARGET BUTTON (MỚI)
+--// TELEPORT TO TARGET BUTTON
 local TeleportButton = Instance.new("TextButton")
 TeleportButton.Parent = MiscContent
 TeleportButton.Size = UDim2.new(1, 0, 0, 35)
@@ -333,12 +333,12 @@ TeleportCorner.Parent = TeleportButton
 --// HIỂN THỊ TỌA ĐỘ TARGET
 local TargetLabel = Instance.new("TextLabel")
 TargetLabel.Parent = MiscContent
-TargetLabel.Size = UDim2.new(1, 0, 0, 20)
-TargetLabel.Position = UDim2.new(0, 0, 0, 125)
+TargetLabel.Size = UDim2.new(1, 0, 0, 25)
+TargetLabel.Position = UDim2.new(0, 0, 0, 126)
 TargetLabel.BackgroundTransparency = 1
 TargetLabel.Text = string.format("Target: %.2f, %.2f, %.2f", TeleportTarget.X, TeleportTarget.Y, TeleportTarget.Z)
 TargetLabel.TextColor3 = LIGHT_RED
-TargetLabel.TextSize = 11
+TargetLabel.TextSize = 12
 TargetLabel.Font = Enum.Font.Gotham
 TargetLabel.TextXAlignment = Enum.TextXAlignment.Center
 TargetLabel.ZIndex = 3
@@ -459,10 +459,8 @@ local function TeleportToTarget()
 	local root = Character:FindFirstChild("HumanoidRootPart")
 	if not root then return end
 
-	-- Dùng PivotTo để dịch chuyển cả nhân vật
 	Character:PivotTo(CFrame.new(TeleportTarget))
 
-	-- Hiệu ứng nhấp nháy nút
 	TeleportButton.Text = "Teleported!"
 	TeleportButton.BackgroundColor3 = RED
 	task.wait(0.6)
@@ -729,14 +727,14 @@ ScaleButton.MouseButton1Click:Connect(function()
 		0,
 		240 * Scale,
 		0,
-		355 * Scale
+		420 * Scale
 	)
 
 	MainFrame.Position = UDim2.new(
 		0.5,
 		-(120 * Scale),
 		0.5,
-		-(177 * Scale)
+		-(210 * Scale)
 	)
 end)
 
