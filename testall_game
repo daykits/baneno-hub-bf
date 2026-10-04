@@ -1,5 +1,5 @@
 --// DATKITS HUB PREMIUM
---// Red Theme + Open/Close Menu + Noclip + Infinite Jump
+--// Red Theme + Open/Close Menu + Noclip + Infinite Jump + Godmode
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -27,6 +27,7 @@ local AntiHitEnabled = false
 local SpeedOverrideEnabled = false
 local NoclipEnabled = false
 local InfiniteJumpEnabled = false
+local GodmodeEnabled = false
 local TargetSpeed = 700
 local IsTeleporting = false
 local MenuOpen = true
@@ -87,8 +88,8 @@ MenuStroke.Parent = MenuButton
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 265)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -132)
+MainFrame.Size = UDim2.new(0, 240, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -155)
 MainFrame.BackgroundColor3 = BACKGROUND
 MainFrame.BackgroundTransparency = 0.35
 MainFrame.BorderSizePixel = 0
@@ -196,7 +197,7 @@ MiscCorner.Parent = MiscTab
 --// CONTENT
 local Content = Instance.new("Frame")
 Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 175)
+Content.Size = UDim2.new(1, -20, 0, 220)
 Content.Position = UDim2.new(0, 10, 0, 78)
 Content.BackgroundTransparency = 1
 Content.ZIndex = 3
@@ -264,6 +265,22 @@ InfJumpButton.AutoButtonColor = false
 local InfJumpCorner = Instance.new("UICorner")
 InfJumpCorner.CornerRadius = UDim.new(0, 7)
 InfJumpCorner.Parent = InfJumpButton
+
+--// GODMODE BUTTON
+local GodmodeButton = Instance.new("TextButton")
+GodmodeButton.Parent = Content
+GodmodeButton.Size = UDim2.new(1, 0, 0, 35)
+GodmodeButton.Position = UDim2.new(0, 0, 0, 172)
+GodmodeButton.BackgroundColor3 = BUTTON
+GodmodeButton.Text = "Godmode : OFF"
+GodmodeButton.TextColor3 = TEXT
+GodmodeButton.TextSize = 13
+GodmodeButton.Font = Enum.Font.GothamBold
+GodmodeButton.AutoButtonColor = false
+
+local GodmodeCorner = Instance.new("UICorner")
+GodmodeCorner.CornerRadius = UDim.new(0, 7)
+GodmodeCorner.Parent = GodmodeButton
 
 --// MISC CONTENT
 local MiscContent = Instance.new("Frame")
@@ -393,6 +410,29 @@ InfJumpButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+--// GODMODE TOGGLE
+GodmodeButton.MouseButton1Click:Connect(function()
+	GodmodeEnabled = not GodmodeEnabled
+
+	if GodmodeEnabled then
+		GodmodeButton.Text = "Godmode : ON"
+		GodmodeButton.BackgroundColor3 = RED
+	else
+		GodmodeButton.Text = "Godmode : OFF"
+		GodmodeButton.BackgroundColor3 = BUTTON
+
+		-- Restore normal health
+		local Character = LocalPlayer.Character
+		if Character then
+			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+			if Humanoid then
+				Humanoid.MaxHealth = 100
+				Humanoid.Health = 100
+			end
+		end
+	end
+end)
+
 --// INFINITE JUMP HANDLER
 UserInputService.JumpRequest:Connect(function()
 	if not InfiniteJumpEnabled then
@@ -416,6 +456,21 @@ UserInputService.JumpRequest:Connect(function()
 
 	-- Apply an upward velocity for the infinite jump effect
 	Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+end)
+
+--// GODMODE LOOP
+RunService.Heartbeat:Connect(function()
+	if GodmodeEnabled then
+		local Character = LocalPlayer.Character
+		if Character then
+			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+			if Humanoid then
+				-- Set extremely high health values to make the player practically immortal
+				Humanoid.MaxHealth = math.huge
+				Humanoid.Health = math.huge
+			end
+		end
+	end
 end)
 
 --// NOCLIP LOOP
@@ -499,14 +554,14 @@ ScaleButton.MouseButton1Click:Connect(function()
 		0,
 		240 * Scale,
 		0,
-		265 * Scale
+		310 * Scale
 	)
 
 	MainFrame.Position = UDim2.new(
 		0.5,
 		-(120 * Scale),
 		0.5,
-		-(132 * Scale)
+		-(155 * Scale)
 	)
 end)
 
@@ -712,6 +767,15 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 			if part:IsA("BasePart") then
 				part.CanCollide = false
 			end
+		end
+	end
+
+	-- Re-apply godmode after respawn
+	if GodmodeEnabled then
+		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+		if Humanoid then
+			Humanoid.MaxHealth = math.huge
+			Humanoid.Health = math.huge
 		end
 	end
 end)
