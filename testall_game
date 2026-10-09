@@ -1,10 +1,13 @@
 --// DATKITS HUB PREMIUM
---// Red Theme + Open/Close Menu + Noclip + Infinite Jump + Godmode + Fly + Teleport
+--// Red Theme + Open/Close Menu + Noclip + Aimbot
 
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -15,26 +18,27 @@ local LogoId = "rbxassetid://99988283073275"
 local targetParent = (gethui and gethui()) or PlayerGui
 
 -- Remove old GUI
-local oldGui = targetParent:FindFirstChild("VirexHubGui")
+local oldGui = targetParent:FindFirstChild("DATKITS HUB PREMIUM")
 if oldGui then
 	oldGui:Destroy()
 end
 
 --// STATE
+local AntiHitEnabled = false
 local SpeedOverrideEnabled = false
 local NoclipEnabled = false
-local InfiniteJumpEnabled = false
-local GodmodeEnabled = false
-local FlyEnabled = false
 local TargetSpeed = 700
+local IsTeleporting = false
 local MenuOpen = true
 
---// FLY SETTINGS
-local FlySpeed = 100
-local FlyKey = Enum.KeyCode.F
-
---// TELEPORT SETTINGS
-local TeleportTarget = Vector3.new(-4634 33, 571.49, 5158.27)
+--// AIMBOT STATE
+local AimbotEnabled = false
+local AimbotFOV = 150
+local AimbotSmoothness = 0.25
+local AimbotTeamCheck = true
+local AimbotVisibleCheck = true
+local AimbotTargetPart = "Head" -- "Head" hoặc "HumanoidRootPart"
+local CurrentTarget = nil
 
 --// COLORS
 local RED = Color3.fromRGB(220, 40, 55)
@@ -44,6 +48,19 @@ local DARK_RED = Color3.fromRGB(150, 25, 40)
 local BACKGROUND = Color3.fromRGB(15, 15, 22)
 local BUTTON = Color3.fromRGB(30, 30, 42)
 local TEXT = Color3.fromRGB(240, 240, 245)
+
+--// TELEPORT POINTS
+local TeleportPoints = {
+	Vector3.new(500.62, 241.28, -366.64),
+	Vector3.new(504.45, 155.80, -366.35),
+	Vector3.new(508.30, 70.28, -366.03),
+	Vector3.new(513.86, 70.28, -366.25),
+	Vector3.new(519.43, 70.28, -366.47),
+	Vector3.new(524.32, 70.28, -366.59),
+	Vector3.new(529.22, 70.28, -366.71),
+	Vector3.new(538.01, 70.28, -365.55),
+	Vector3.new(546.80, 70.28, -364.40)
+}
 
 --// GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -79,8 +96,8 @@ MenuStroke.Parent = MenuButton
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 420)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -210)
+MainFrame.Size = UDim2.new(0, 240, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -150)
 MainFrame.BackgroundColor3 = BACKGROUND
 MainFrame.BackgroundTransparency = 0.35
 MainFrame.BorderSizePixel = 0
@@ -155,12 +172,12 @@ CloseCorner.Parent = CloseButton
 --// TABS
 local MainTab = Instance.new("TextButton")
 MainTab.Parent = MainFrame
-MainTab.Size = UDim2.new(0, 105, 0, 28)
+MainTab.Size = UDim2.new(0, 70, 0, 28)
 MainTab.Position = UDim2.new(0, 10, 0, 45)
 MainTab.BackgroundColor3 = RED
 MainTab.Text = "Main"
 MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainTab.TextSize = 13
+MainTab.TextSize = 12
 MainTab.Font = Enum.Font.GothamBold
 MainTab.AutoButtonColor = false
 MainTab.ZIndex = 3
@@ -169,14 +186,30 @@ local MainTabCorner = Instance.new("UICorner")
 MainTabCorner.CornerRadius = UDim.new(0, 7)
 MainTabCorner.Parent = MainTab
 
+local AimTab = Instance.new("TextButton")
+AimTab.Parent = MainFrame
+AimTab.Size = UDim2.new(0, 70, 0, 28)
+AimTab.Position = UDim2.new(0, 85, 0, 45)
+AimTab.BackgroundColor3 = BUTTON
+AimTab.Text = "Aimbot"
+AimTab.TextColor3 = TEXT
+AimTab.TextSize = 12
+AimTab.Font = Enum.Font.GothamBold
+AimTab.AutoButtonColor = false
+AimTab.ZIndex = 3
+
+local AimCorner = Instance.new("UICorner")
+AimCorner.CornerRadius = UDim.new(0, 7)
+AimCorner.Parent = AimTab
+
 local MiscTab = Instance.new("TextButton")
 MiscTab.Parent = MainFrame
-MiscTab.Size = UDim2.new(0, 105, 0, 28)
-MiscTab.Position = UDim2.new(0, 122, 0, 45)
+MiscTab.Size = UDim2.new(0, 70, 0, 28)
+MiscTab.Position = UDim2.new(0, 160, 0, 45)
 MiscTab.BackgroundColor3 = BUTTON
 MiscTab.Text = "Misc"
 MiscTab.TextColor3 = TEXT
-MiscTab.TextSize = 13
+MiscTab.TextSize = 12
 MiscTab.Font = Enum.Font.GothamBold
 MiscTab.AutoButtonColor = false
 MiscTab.ZIndex = 3
@@ -185,19 +218,35 @@ local MiscCorner = Instance.new("UICorner")
 MiscCorner.CornerRadius = UDim.new(0, 7)
 MiscCorner.Parent = MiscTab
 
---// CONTENT (tab Main)
+--// CONTENT
 local Content = Instance.new("Frame")
 Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 320)
+Content.Size = UDim2.new(1, -20, 0, 210)
 Content.Position = UDim2.new(0, 10, 0, 78)
 Content.BackgroundTransparency = 1
 Content.ZIndex = 3
+
+--// ANTI HIT
+local AntiHitButton = Instance.new("TextButton")
+AntiHitButton.Parent = Content
+AntiHitButton.Size = UDim2.new(1, 0, 0, 35)
+AntiHitButton.Position = UDim2.new(0, 0, 0, 0)
+AntiHitButton.BackgroundColor3 = BUTTON
+AntiHitButton.Text = "Anti-Hit : OFF"
+AntiHitButton.TextColor3 = TEXT
+AntiHitButton.TextSize = 13
+AntiHitButton.Font = Enum.Font.GothamBold
+AntiHitButton.AutoButtonColor = false
+
+local AntiHitCorner = Instance.new("UICorner")
+AntiHitCorner.CornerRadius = UDim.new(0, 7)
+AntiHitCorner.Parent = AntiHitButton
 
 --// SPEED
 local SpeedButton = Instance.new("TextButton")
 SpeedButton.Parent = Content
 SpeedButton.Size = UDim2.new(1, 0, 0, 35)
-SpeedButton.Position = UDim2.new(0, 0, 0, 0)
+SpeedButton.Position = UDim2.new(0, 0, 0, 43)
 SpeedButton.BackgroundColor3 = BUTTON
 SpeedButton.Text = "Speed Override (700) : OFF"
 SpeedButton.TextColor3 = TEXT
@@ -213,7 +262,7 @@ SpeedCorner.Parent = SpeedButton
 local NoclipButton = Instance.new("TextButton")
 NoclipButton.Parent = Content
 NoclipButton.Size = UDim2.new(1, 0, 0, 35)
-NoclipButton.Position = UDim2.new(0, 0, 0, 43)
+NoclipButton.Position = UDim2.new(0, 0, 0, 86)
 NoclipButton.BackgroundColor3 = BUTTON
 NoclipButton.Text = "Noclip : OFF"
 NoclipButton.TextColor3 = TEXT
@@ -225,59 +274,100 @@ local NoclipCorner = Instance.new("UICorner")
 NoclipCorner.CornerRadius = UDim.new(0, 7)
 NoclipCorner.Parent = NoclipButton
 
---// INFINITE JUMP BUTTON
-local InfJumpButton = Instance.new("TextButton")
-InfJumpButton.Parent = Content
-InfJumpButton.Size = UDim2.new(1, 0, 0, 35)
-InfJumpButton.Position = UDim2.new(0, 0, 0, 86)
-InfJumpButton.BackgroundColor3 = BUTTON
-InfJumpButton.Text = "Infinite Jump : OFF"
-InfJumpButton.TextColor3 = TEXT
-InfJumpButton.TextSize = 13
-InfJumpButton.Font = Enum.Font.GothamBold
-InfJumpButton.AutoButtonColor = false
+--// AIMBOT CONTENT
+local AimContent = Instance.new("Frame")
+AimContent.Parent = MainFrame
+AimContent.Size = Content.Size
+AimContent.Position = Content.Position
+AimContent.BackgroundTransparency = 1
+AimContent.Visible = false
+AimContent.ZIndex = 3
 
-local InfJumpCorner = Instance.new("UICorner")
-InfJumpCorner.CornerRadius = UDim.new(0, 7)
-InfJumpCorner.Parent = InfJumpButton
+-- Aimbot Toggle
+local AimbotButton = Instance.new("TextButton")
+AimbotButton.Parent = AimContent
+AimbotButton.Size = UDim2.new(1, 0, 0, 35)
+AimbotButton.Position = UDim2.new(0, 0, 0, 0)
+AimbotButton.BackgroundColor3 = BUTTON
+AimbotButton.Text = "Aimbot : OFF"
+AimbotButton.TextColor3 = TEXT
+AimbotButton.TextSize = 13
+AimbotButton.Font = Enum.Font.GothamBold
+AimbotButton.AutoButtonColor = false
 
---// GODMODE BUTTON
-local GodmodeButton = Instance.new("TextButton")
-GodmodeButton.Parent = Content
-GodmodeButton.Size = UDim2.new(1, 0, 0, 35)
-GodmodeButton.Position = UDim2.new(0, 0, 0, 129)
-GodmodeButton.BackgroundColor3 = BUTTON
-GodmodeButton.Text = "Godmode : OFF"
-GodmodeButton.TextColor3 = TEXT
-GodmodeButton.TextSize = 13
-GodmodeButton.Font = Enum.Font.GothamBold
-GodmodeButton.AutoButtonColor = false
+local AimbotCorner = Instance.new("UICorner")
+AimbotCorner.CornerRadius = UDim.new(0, 7)
+AimbotCorner.Parent = AimbotButton
 
-local GodmodeCorner = Instance.new("UICorner")
-GodmodeCorner.CornerRadius = UDim.new(0, 7)
-GodmodeCorner.Parent = GodmodeButton
+-- FOV Button
+local FOVButton = Instance.new("TextButton")
+FOVButton.Parent = AimContent
+FOVButton.Size = UDim2.new(1, 0, 0, 35)
+FOVButton.Position = UDim2.new(0, 0, 0, 43)
+FOVButton.BackgroundColor3 = BUTTON
+FOVButton.Text = "FOV : 150"
+FOVButton.TextColor3 = TEXT
+FOVButton.TextSize = 13
+FOVButton.Font = Enum.Font.GothamBold
+FOVButton.AutoButtonColor = false
 
---// FLY BUTTON
-local FlyButton = Instance.new("TextButton")
-FlyButton.Parent = Content
-FlyButton.Size = UDim2.new(1, 0, 0, 35)
-FlyButton.Position = UDim2.new(0, 0, 0, 172)
-FlyButton.BackgroundColor3 = BUTTON
-FlyButton.Text = "Fly : OFF"
-FlyButton.TextColor3 = TEXT
-FlyButton.TextSize = 13
-FlyButton.Font = Enum.Font.GothamBold
-FlyButton.AutoButtonColor = false
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(0, 7)
+FOVCorner.Parent = FOVButton
 
-local FlyCorner = Instance.new("UICorner")
-FlyCorner.CornerRadius = UDim.new(0, 7)
-FlyCorner.Parent = FlyButton
+-- Smoothness Button
+local SmoothButton = Instance.new("TextButton")
+SmoothButton.Parent = AimContent
+SmoothButton.Size = UDim2.new(1, 0, 0, 35)
+SmoothButton.Position = UDim2.new(0, 0, 0, 86)
+SmoothButton.BackgroundColor3 = BUTTON
+SmoothButton.Text = "Smoothness : 0.25"
+SmoothButton.TextColor3 = TEXT
+SmoothButton.TextSize = 13
+SmoothButton.Font = Enum.Font.GothamBold
+SmoothButton.AutoButtonColor = false
+
+local SmoothCorner = Instance.new("UICorner")
+SmoothCorner.CornerRadius = UDim.new(0, 7)
+SmoothCorner.Parent = SmoothButton
+
+-- Team Check Button
+local TeamCheckButton = Instance.new("TextButton")
+TeamCheckButton.Parent = AimContent
+TeamCheckButton.Size = UDim2.new(1, 0, 0, 35)
+TeamCheckButton.Position = UDim2.new(0, 0, 0, 129)
+TeamCheckButton.BackgroundColor3 = RED
+TeamCheckButton.Text = "Team Check : ON"
+TeamCheckButton.TextColor3 = TEXT
+TeamCheckButton.TextSize = 13
+TeamCheckButton.Font = Enum.Font.GothamBold
+TeamCheckButton.AutoButtonColor = false
+
+local TeamCheckCorner = Instance.new("UICorner")
+TeamCheckCorner.CornerRadius = UDim.new(0, 7)
+TeamCheckCorner.Parent = TeamCheckButton
+
+-- Target Part Button
+local TargetPartButton = Instance.new("TextButton")
+TargetPartButton.Parent = AimContent
+TargetPartButton.Size = UDim2.new(1, 0, 0, 35)
+TargetPartButton.Position = UDim2.new(0, 0, 0, 172)
+TargetPartButton.BackgroundColor3 = BUTTON
+TargetPartButton.Text = "Target : Head"
+TargetPartButton.TextColor3 = TEXT
+TargetPartButton.TextSize = 13
+TargetPartButton.Font = Enum.Font.GothamBold
+TargetPartButton.AutoButtonColor = false
+
+local TargetPartCorner = Instance.new("UICorner")
+TargetPartCorner.CornerRadius = UDim.new(0, 7)
+TargetPartCorner.Parent = TargetPartButton
 
 --// MISC CONTENT
 local MiscContent = Instance.new("Frame")
 MiscContent.Parent = MainFrame
-MiscContent.Size = UDim2.new(1, -20, 0, 320)
-MiscContent.Position = UDim2.new(0, 10, 0, 78)
+MiscContent.Size = Content.Size
+MiscContent.Position = Content.Position
 MiscContent.BackgroundTransparency = 1
 MiscContent.Visible = false
 MiscContent.ZIndex = 3
@@ -314,50 +404,64 @@ local ScaleCorner = Instance.new("UICorner")
 ScaleCorner.CornerRadius = UDim.new(0, 7)
 ScaleCorner.Parent = ScaleButton
 
---// TELEPORT TO TARGET BUTTON
-local TeleportButton = Instance.new("TextButton")
-TeleportButton.Parent = MiscContent
-TeleportButton.Size = UDim2.new(1, 0, 0, 35)
-TeleportButton.Position = UDim2.new(0, 0, 0, 86)
-TeleportButton.BackgroundColor3 = BUTTON
-TeleportButton.Text = "Teleport to Target"
-TeleportButton.TextColor3 = TEXT
-TeleportButton.TextSize = 13
-TeleportButton.Font = Enum.Font.GothamBold
-TeleportButton.AutoButtonColor = false
+-- FOV Circle Toggle
+local FOVCircleButton = Instance.new("TextButton")
+FOVCircleButton.Parent = MiscContent
+FOVCircleButton.Size = UDim2.new(1, 0, 0, 35)
+FOVCircleButton.Position = UDim2.new(0, 0, 0, 86)
+FOVCircleButton.BackgroundColor3 = RED
+FOVCircleButton.Text = "FOV Circle : ON"
+FOVCircleButton.TextColor3 = TEXT
+FOVCircleButton.TextSize = 13
+FOVCircleButton.Font = Enum.Font.GothamBold
+FOVCircleButton.AutoButtonColor = false
 
-local TeleportCorner = Instance.new("UICorner")
-TeleportCorner.CornerRadius = UDim.new(0, 7)
-TeleportCorner.Parent = TeleportButton
-
---// HIỂN THỊ TỌA ĐỘ TARGET
-local TargetLabel = Instance.new("TextLabel")
-TargetLabel.Parent = MiscContent
-TargetLabel.Size = UDim2.new(1, 0, 0, 25)
-TargetLabel.Position = UDim2.new(0, 0, 0, 126)
-TargetLabel.BackgroundTransparency = 1
-TargetLabel.Text = string.format("Target: %.2f, %.2f, %.2f", TeleportTarget.X, TeleportTarget.Y, TeleportTarget.Z)
-TargetLabel.TextColor3 = LIGHT_RED
-TargetLabel.TextSize = 12
-TargetLabel.Font = Enum.Font.Gotham
-TargetLabel.TextXAlignment = Enum.TextXAlignment.Center
-TargetLabel.ZIndex = 3
+local FOVCircleCorner = Instance.new("UICorner")
+FOVCircleCorner.CornerRadius = UDim.new(0, 7)
+FOVCircleCorner.Parent = FOVCircleButton
 
 --// TAB SWITCHING
 MainTab.MouseButton1Click:Connect(function()
 	MainTab.BackgroundColor3 = RED
+	AimTab.BackgroundColor3 = BUTTON
 	MiscTab.BackgroundColor3 = BUTTON
 
 	Content.Visible = true
+	AimContent.Visible = false
+	MiscContent.Visible = false
+end)
+
+AimTab.MouseButton1Click:Connect(function()
+	AimTab.BackgroundColor3 = RED
+	MainTab.BackgroundColor3 = BUTTON
+	MiscTab.BackgroundColor3 = BUTTON
+
+	Content.Visible = false
+	AimContent.Visible = true
 	MiscContent.Visible = false
 end)
 
 MiscTab.MouseButton1Click:Connect(function()
 	MiscTab.BackgroundColor3 = RED
 	MainTab.BackgroundColor3 = BUTTON
+	AimTab.BackgroundColor3 = BUTTON
 
 	Content.Visible = false
+	AimContent.Visible = false
 	MiscContent.Visible = true
+end)
+
+--// ANTI-HIT TOGGLE
+AntiHitButton.MouseButton1Click:Connect(function()
+	AntiHitEnabled = not AntiHitEnabled
+
+	if AntiHitEnabled then
+		AntiHitButton.Text = "Anti-Hit : ON"
+		AntiHitButton.BackgroundColor3 = RED
+	else
+		AntiHitButton.Text = "Anti-Hit : OFF"
+		AntiHitButton.BackgroundColor3 = BUTTON
+	end
 end)
 
 --// SPEED TOGGLE
@@ -403,334 +507,68 @@ NoclipButton.MouseButton1Click:Connect(function()
 	end
 end)
 
---// INFINITE JUMP TOGGLE
-InfJumpButton.MouseButton1Click:Connect(function()
-	InfiniteJumpEnabled = not InfiniteJumpEnabled
+--// AIMBOT TOGGLE
+AimbotButton.MouseButton1Click:Connect(function()
+	AimbotEnabled = not AimbotEnabled
 
-	if InfiniteJumpEnabled then
-		InfJumpButton.Text = "Infinite Jump : ON"
-		InfJumpButton.BackgroundColor3 = RED
+	if AimbotEnabled then
+		AimbotButton.Text = "Aimbot : ON"
+		AimbotButton.BackgroundColor3 = RED
 	else
-		InfJumpButton.Text = "Infinite Jump : OFF"
-		InfJumpButton.BackgroundColor3 = BUTTON
+		AimbotButton.Text = "Aimbot : OFF"
+		AimbotButton.BackgroundColor3 = BUTTON
+		CurrentTarget = nil
 	end
 end)
 
---// GODMODE TOGGLE
-GodmodeButton.MouseButton1Click:Connect(function()
-	GodmodeEnabled = not GodmodeEnabled
+--// FOV CYCLE
+local FOVOptions = {50, 100, 150, 200, 300, 500}
+local FOVIndex = 3
 
-	if GodmodeEnabled then
-		GodmodeButton.Text = "Godmode : ON"
-		GodmodeButton.BackgroundColor3 = RED
+FOVButton.MouseButton1Click:Connect(function()
+	FOVIndex += 1
+	if FOVIndex > #FOVOptions then
+		FOVIndex = 1
+	end
+	AimbotFOV = FOVOptions[FOVIndex]
+	FOVButton.Text = "FOV : " .. AimbotFOV
+end)
+
+--// SMOOTHNESS CYCLE
+local SmoothOptions = {0.05, 0.1, 0.15, 0.25, 0.35, 0.5, 1}
+local SmoothIndex = 4
+
+SmoothButton.MouseButton1Click:Connect(function()
+	SmoothIndex += 1
+	if SmoothIndex > #SmoothOptions then
+		SmoothIndex = 1
+	end
+	AimbotSmoothness = SmoothOptions[SmoothIndex]
+	SmoothButton.Text = "Smoothness : " .. AimbotSmoothness
+end)
+
+--// TEAM CHECK TOGGLE
+TeamCheckButton.MouseButton1Click:Connect(function()
+	AimbotTeamCheck = not AimbotTeamCheck
+
+	if AimbotTeamCheck then
+		TeamCheckButton.Text = "Team Check : ON"
+		TeamCheckButton.BackgroundColor3 = RED
 	else
-		GodmodeButton.Text = "Godmode : OFF"
-		GodmodeButton.BackgroundColor3 = BUTTON
-
-		-- Tắt godmode: khôi phục máu bình thường
-		local Character = LocalPlayer.Character
-		if Character then
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-			if Humanoid then
-				Humanoid.MaxHealth = 100
-				Humanoid.Health = 100
-			end
-
-			-- Xóa ForceField nếu có
-			local ff = Character:FindFirstChildOfClass("ForceField")
-			if ff then
-				ff:Destroy()
-			end
-		end
+		TeamCheckButton.Text = "Team Check : OFF"
+		TeamCheckButton.BackgroundColor3 = BUTTON
 	end
 end)
 
---// FLY TOGGLE
-FlyButton.MouseButton1Click:Connect(function()
-	FlyEnabled = not FlyEnabled
-
-	if FlyEnabled then
-		FlyButton.Text = "Fly : ON"
-		FlyButton.BackgroundColor3 = RED
+--// TARGET PART CYCLE
+TargetPartButton.MouseButton1Click:Connect(function()
+	if AimbotTargetPart == "Head" then
+		AimbotTargetPart = "HumanoidRootPart"
+		TargetPartButton.Text = "Target : Body"
 	else
-		FlyButton.Text = "Fly : OFF"
-		FlyButton.BackgroundColor3 = BUTTON
+		AimbotTargetPart = "Head"
+		TargetPartButton.Text = "Target : Head"
 	end
-end)
-
---// TELEPORT FUNCTION
-local function TeleportToTarget()
-	local Character = LocalPlayer.Character
-	if not Character then return end
-
-	local root = Character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
-
-	Character:PivotTo(CFrame.new(TeleportTarget))
-
-	TeleportButton.Text = "Teleported!"
-	TeleportButton.BackgroundColor3 = RED
-	task.wait(0.6)
-	TeleportButton.Text = "Teleport to Target"
-	TeleportButton.BackgroundColor3 = BUTTON
-end
-
-TeleportButton.MouseButton1Click:Connect(TeleportToTarget)
-
---// ======================= GODMODE SYSTEM (NÂNG CẤP) =======================
--- Lớp 1: Máu vô cực + ForceField liên tục
--- Lớp 2: Chặn Died (nếu chết thì hồi sinh máu)
--- Lớp 3: Hook HealthChanged để giữ máu luôn đầy
-
-local GodmodeConnections = {}
-
-local function ClearGodmodeConnections()
-	for _, conn in ipairs(GodmodeConnections) do
-		if conn and conn.Disconnect then
-			conn:Disconnect()
-		end
-	end
-	GodmodeConnections = {}
-end
-
-local function ApplyGodmode(Character)
-	ClearGodmodeConnections()
-
-	local Humanoid = Character:WaitForChild("Humanoid", 5)
-	if not Humanoid then return end
-
-	-- Lớp 1: Máu vô cực ngay lập tức
-	Humanoid.MaxHealth = math.huge
-	Humanoid.Health = math.huge
-
-	-- ForceField để chặn damage từ server
-	if not Character:FindFirstChildOfClass("ForceField") then
-		local ff = Instance.new("ForceField")
-		ff.Visible = false
-		ff.Parent = Character
-	end
-
-	-- Lớp 2: Chặn Died
-	local diedConn = Humanoid.Died:Connect(function()
-		if GodmodeEnabled then
-			task.wait(0.1)
-			Humanoid.Health = math.huge
-		end
-	end)
-	table.insert(GodmodeConnections, diedConn)
-
-	-- Lớp 3: Hook HealthChanged
-	local healthConn = Humanoid.HealthChanged:Connect(function(health)
-		if GodmodeEnabled and health < Humanoid.MaxHealth then
-			Humanoid.Health = Humanoid.MaxHealth
-		end
-	end)
-	table.insert(GodmodeConnections, healthConn)
-end
-
---// GODMODE LOOP: Duy trì máu + ForceField
-RunService.Heartbeat:Connect(function()
-	if not GodmodeEnabled then
-		return
-	end
-
-	local Character = LocalPlayer.Character
-	if not Character then return end
-
-	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-	if not Humanoid then return end
-
-	-- Duy trì máu vô cực
-	if Humanoid.MaxHealth ~= math.huge then
-		Humanoid.MaxHealth = math.huge
-	end
-	if Humanoid.Health ~= math.huge then
-		Humanoid.Health = math.huge
-	end
-
-	-- Duy trì ForceField
-	if not Character:FindFirstChildOfClass("ForceField") then
-		local ff = Instance.new("ForceField")
-		ff.Visible = false
-		ff.Parent = Character
-	end
-end)
-
--- Áp dụng godmode khi nhân vật spawn
-if LocalPlayer.Character then
-	ApplyGodmode(LocalPlayer.Character)
-end
-
-LocalPlayer.CharacterAdded:Connect(function(Character)
-	task.wait(1)
-
-	if GodmodeEnabled then
-		ApplyGodmode(Character)
-	end
-end)
-
---// ======================= KẾT THÚC GODMODE SYSTEM =======================
-
---// ======================= FLY SYSTEM =======================
-local FlyConnection
-local BodyVelocity
-local BodyGyro
-local FlySpeedValue = FlySpeed
-
-local function StopFly()
-	if FlyConnection then
-		FlyConnection:Disconnect()
-		FlyConnection = nil
-	end
-
-	local Character = LocalPlayer.Character
-	if Character then
-		local root = Character:FindFirstChild("HumanoidRootPart")
-		if root then
-			if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
-			if BodyGyro then BodyGyro:Destroy() BodyGyro = nil end
-		end
-	end
-end
-
-local function StartFly()
-	StopFly()
-
-	local Character = LocalPlayer.Character
-	if not Character then return end
-
-	local root = Character:FindFirstChild("HumanoidRootPart")
-	local humanoid = Character:FindFirstChildOfClass("Humanoid")
-	if not root or not humanoid then return end
-
-	BodyVelocity = Instance.new("BodyVelocity")
-	BodyVelocity.Name = "DATKITS_FlyVelocity"
-	BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-	BodyVelocity.Velocity = Vector3.zero
-	BodyVelocity.Parent = root
-
-	BodyGyro = Instance.new("BodyGyro")
-	BodyGyro.Name = "DATKITS_FlyGyro"
-	BodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-	BodyGyro.P = 1000
-	BodyGyro.D = 50
-	BodyGyro.CFrame = root.CFrame
-	BodyGyro.Parent = root
-
-	humanoid.PlatformStand = true
-
-	local camera = Workspace.CurrentCamera
-
-	FlyConnection = RunService.RenderStepped:Connect(function()
-		if not FlyEnabled then
-			StopFly()
-			if humanoid then
-				humanoid.PlatformStand = false
-			end
-			return
-		end
-
-		if not root or not root.Parent then
-			StopFly()
-			return
-		end
-
-		local direction = Vector3.zero
-
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-			direction += camera.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-			direction -= camera.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-			direction -= camera.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-			direction += camera.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-			direction += Vector3.new(0, 1, 0)
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-			direction -= Vector3.new(0, 1, 0)
-		end
-
-		local moveDir = humanoid.MoveDirection
-		if moveDir.Magnitude > 0 then
-			direction += moveDir
-		end
-
-		if direction.Magnitude > 0 then
-			BodyVelocity.Velocity = direction.Unit * FlySpeedValue
-		else
-			BodyVelocity.Velocity = Vector3.zero
-		end
-
-		BodyGyro.CFrame = CFrame.new(root.Position, root.Position + camera.CFrame.LookVector)
-	end)
-end
-
-task.spawn(function()
-	local wasEnabled = false
-	while ScreenGui and ScreenGui.Parent do
-		if FlyEnabled and not wasEnabled then
-			wasEnabled = true
-			StartFly()
-		elseif not FlyEnabled and wasEnabled then
-			wasEnabled = false
-			StopFly()
-			local Character = LocalPlayer.Character
-			if Character then
-				local humanoid = Character:FindFirstChildOfClass("Humanoid")
-				if humanoid then
-					humanoid.PlatformStand = false
-				end
-			end
-		end
-		task.wait(0.1)
-	end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == FlyKey then
-		FlyEnabled = not FlyEnabled
-
-		if FlyEnabled then
-			FlyButton.Text = "Fly : ON"
-			FlyButton.BackgroundColor3 = RED
-		else
-			FlyButton.Text = "Fly : OFF"
-			FlyButton.BackgroundColor3 = BUTTON
-		end
-	end
-end)
-
---// ======================= KẾT THÚC FLY SYSTEM =======================
-
---// INFINITE JUMP HANDLER
-UserInputService.JumpRequest:Connect(function()
-	if not InfiniteJumpEnabled then
-		return
-	end
-
-	local Character = LocalPlayer.Character
-	if not Character then
-		return
-	end
-
-	local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-	if not Humanoid then
-		return
-	end
-
-	local HumanoidState = Humanoid:GetState()
-	if HumanoidState == Enum.HumanoidStateType.Dead then
-		return
-	end
-
-	Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 end)
 
 --// NOCLIP LOOP
@@ -790,13 +628,7 @@ BackgroundButton.MouseButton1Click:Connect(function()
 end)
 
 --// GUI SCALE
-local ScaleOptions = {
-	0.8,
-	1.0,
-	1.2,
-	1.4
-}
-
+local ScaleOptions = {0.8, 1.0, 1.2, 1.4}
 local ScaleIndex = 2
 
 ScaleButton.MouseButton1Click:Connect(function()
@@ -810,19 +642,165 @@ ScaleButton.MouseButton1Click:Connect(function()
 
 	ScaleButton.Text = "GUI Scale : " .. Scale .. "x"
 
-	MainFrame.Size = UDim2.new(
-		0,
-		240 * Scale,
-		0,
-		420 * Scale
-	)
+	MainFrame.Size = UDim2.new(0, 240 * Scale, 0, 300 * Scale)
+	MainFrame.Position = UDim2.new(0.5, -(120 * Scale), 0.5, -(150 * Scale))
+end)
 
-	MainFrame.Position = UDim2.new(
-		0.5,
-		-(120 * Scale),
-		0.5,
-		-(210 * Scale)
-	)
+--// FOV CIRCLE TOGGLE
+local FOVCircleVisible = true
+
+FOVCircleButton.MouseButton1Click:Connect(function()
+	FOVCircleVisible = not FOVCircleVisible
+
+	if FOVCircleVisible then
+		FOVCircleButton.Text = "FOV Circle : ON"
+		FOVCircleButton.BackgroundColor3 = RED
+	else
+		FOVCircleButton.Text = "FOV Circle : OFF"
+		FOVCircleButton.BackgroundColor3 = BUTTON
+	end
+end)
+
+--// FOV CIRCLE DRAWING
+local FOVCircleGui = Instance.new("ScreenGui")
+FOVCircleGui.Name = "AimbotFOVCircle"
+FOVCircleGui.ResetOnSpawn = false
+FOVCircleGui.IgnoreGuiInset = true
+FOVCircleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+FOVCircleGui.Parent = targetParent
+
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOVCircle"
+FOVCircle.Parent = FOVCircleGui
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Size = UDim2.new(0, AimbotFOV * 2, 0, AimbotFOV * 2)
+
+local FOVCircleCorner = Instance.new("UICorner")
+FOVCircleCorner.CornerRadius = UDim.new(1, 0)
+FOVCircleCorner.Parent = FOVCircle
+
+local FOVCircleStroke = Instance.new("UIStroke")
+FOVCircleStroke.Color = RED
+FOVCircleStroke.Thickness = 1.5
+FOVCircleStroke.Transparency = 0.3
+FOVCircleStroke.Parent = FOVCircle
+
+--// UPDATE FOV CIRCLE
+RunService.RenderStepped:Connect(function()
+	if Camera then
+		FOVCircle.Position = UDim2.new(0, Camera.ViewportSize.X / 2, 0, Camera.ViewportSize.Y / 2)
+	end
+	FOVCircle.Size = UDim2.new(0, AimbotFOV * 2, 0, AimbotFOV * 2)
+	FOVCircle.Visible = FOVCircleVisible and AimbotEnabled
+end)
+
+--// AIMBOT FUNCTIONS
+local function IsOnScreen(position)
+	if not Camera then return false end
+	local screenPoint = Camera:WorldToViewportPoint(position)
+	return screenPoint.Z > 0
+end
+
+local function IsVisible(part)
+	if not AimbotVisibleCheck then return true end
+	if not part then return false end
+	if not Camera then return false end
+
+	local origin = Camera.CFrame.Position
+	local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
+
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = {LocalPlayer.Character, CurrentTarget}
+
+	local result = Workspace:Raycast(origin, direction, rayParams)
+	if result then
+		return result.Instance:IsDescendantOf(part.Parent)
+	end
+
+	return true
+end
+
+local function GetTargetPart(character)
+	if not character then return nil end
+	if AimbotTargetPart == "Head" then
+		return character:FindFirstChild("Head")
+	else
+		return character:FindFirstChild("HumanoidRootPart")
+	end
+end
+
+local function GetClosestPlayer()
+	if not Camera then return nil, nil end
+
+	local closestDist = math.huge
+	local closestTarget = nil
+	local closestPart = nil
+
+	local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			-- Team check
+			if AimbotTeamCheck and player.Team == LocalPlayer.Team and player.Team ~= nil then
+				continue
+			end
+
+			local character = player.Character
+			if character then
+				local humanoid = character:FindFirstChildOfClass("Humanoid")
+				if humanoid and humanoid.Health > 0 then
+					local targetPart = GetTargetPart(character)
+
+					if targetPart then
+						local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+
+						if onScreen then
+							local distance = (mousePos - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+
+							if distance < AimbotFOV and distance < closestDist then
+								if IsVisible(targetPart) then
+									closestDist = distance
+									closestTarget = player
+									closestPart = targetPart
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return closestTarget, closestPart
+end
+
+--// AIMBOT LOOP
+RunService.RenderStepped:Connect(function()
+	if not AimbotEnabled then
+		CurrentTarget = nil
+		return
+	end
+
+	if not Camera then return end
+
+	local targetPlayer, targetPart = GetClosestPlayer()
+	CurrentTarget = targetPlayer
+
+	if targetPart and targetPart.Parent then
+		local targetPos = targetPart.Position
+
+		if AimbotSmoothness >= 1 then
+			-- Instant lock
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+		else
+			-- Smooth lock
+			local currentCFrame = Camera.CFrame
+			local newCFrame = CFrame.new(currentCFrame.Position, targetPos)
+			Camera.CFrame = currentCFrame:Lerp(newCFrame, AimbotSmoothness)
+		end
+	end
 end)
 
 --// DRAGGING
@@ -888,6 +866,122 @@ CloseButton.MouseButton1Click:Connect(function()
 	SetMenuVisible(false)
 end)
 
+--// TELEPORT OVERLAY
+local TeleportOverlay = Instance.new("Frame")
+TeleportOverlay.Parent = ScreenGui
+TeleportOverlay.Size = UDim2.new(1, 0, 1, 0)
+TeleportOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TeleportOverlay.BackgroundTransparency = 0.25
+TeleportOverlay.Visible = false
+TeleportOverlay.ZIndex = 20
+
+local OverlayLogo = Instance.new("ImageLabel")
+OverlayLogo.Parent = TeleportOverlay
+OverlayLogo.Size = UDim2.new(0, 70, 0, 70)
+OverlayLogo.Position = UDim2.new(0.5, -35, 0.5, -80)
+OverlayLogo.BackgroundTransparency = 1
+OverlayLogo.Image = LogoId
+OverlayLogo.ZIndex = 21
+
+local OverlayText = Instance.new("TextLabel")
+OverlayText.Parent = TeleportOverlay
+OverlayText.Size = UDim2.new(0, 300, 0, 40)
+OverlayText.Position = UDim2.new(0.5, -150, 0.5, 0)
+OverlayText.BackgroundTransparency = 1
+OverlayText.Text = "anti hit almost loaded"
+OverlayText.TextColor3 = Color3.fromRGB(255, 255, 255)
+OverlayText.TextSize = 16
+OverlayText.Font = Enum.Font.GothamBold
+OverlayText.ZIndex = 21
+
+local ProgressBack = Instance.new("Frame")
+ProgressBack.Parent = TeleportOverlay
+ProgressBack.Size = UDim2.new(0, 240, 0, 8)
+ProgressBack.Position = UDim2.new(0.5, -120, 0.5, 45)
+ProgressBack.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ProgressBack.BorderSizePixel = 0
+ProgressBack.ZIndex = 21
+
+local ProgressCorner = Instance.new("UICorner")
+ProgressCorner.CornerRadius = UDim.new(1, 0)
+ProgressCorner.Parent = ProgressBack
+
+local ProgressFill = Instance.new("Frame")
+ProgressFill.Parent = ProgressBack
+ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+ProgressFill.BackgroundColor3 = RED
+ProgressFill.BorderSizePixel = 0
+ProgressFill.ZIndex = 22
+
+local ProgressFillCorner = Instance.new("UICorner")
+ProgressFillCorner.CornerRadius = UDim.new(1, 0)
+ProgressFillCorner.Parent = ProgressFill
+
+--// TELEPORT FUNCTION
+local function TeleportRoute(Character)
+	if IsTeleporting then
+		return
+	end
+
+	IsTeleporting = true
+
+	TeleportOverlay.Visible = true
+	ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+	OverlayText.Text = "anti hit almost loaded"
+
+	for i, Position in ipairs(TeleportPoints) do
+		if not Character or not Character.Parent then
+			break
+		end
+
+		Character:PivotTo(CFrame.new(Position))
+
+		local Progress = i / #TeleportPoints
+
+		TweenService:Create(
+			ProgressFill,
+			TweenInfo.new(0.15),
+			{Size = UDim2.new(Progress, 0, 1, 0)}
+		):Play()
+
+		task.wait(0.15)
+	end
+
+	OverlayText.Text = "anti hit loaded!"
+	task.wait(0.6)
+
+	local Fade = TweenService:Create(
+		TeleportOverlay,
+		TweenInfo.new(0.4),
+		{BackgroundTransparency = 1}
+	)
+
+	Fade:Play()
+	Fade.Completed:Wait()
+
+	TeleportOverlay.Visible = false
+	TeleportOverlay.BackgroundTransparency = 0.25
+
+	IsTeleporting = false
+end
+
+--// PROXIMITY PROMPT
+ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+	if player ~= LocalPlayer then
+		return
+	end
+
+	if not AntiHitEnabled then
+		return
+	end
+
+	local Character = LocalPlayer.Character
+
+	if Character then
+		TeleportRoute(Character)
+	end
+end)
+
 --// CHARACTER RESPAWN
 LocalPlayer.CharacterAdded:Connect(function(Character)
 	task.wait(1)
@@ -907,14 +1001,6 @@ LocalPlayer.CharacterAdded:Connect(function(Character)
 			end
 		end
 	end
-
-	-- Godmode đã được xử lý riêng ở block GODMODE SYSTEM phía trên
-	-- nhưng vẫn giữ ở đây để đảm bảo áp dụng ngay
-
-	if FlyEnabled then
-		task.wait(0.5)
-		StartFly()
-	end
 end)
 
-print("DATKITS HUB PREMIUM loaded. (Fly + Teleport + Godmode nâng cấp)")
+print("DATKITS HUB PREMIUM + AIMBOT loaded.")
