@@ -1,5 +1,5 @@
---// DATKITS HUB PREMIUM - AIMBOT ONLY
---// Red Theme + Aimbot
+--// DATKITS HUB PREMIUM - AIMBOT PRO
+--// Red Theme + Advanced Aimbot
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -15,23 +15,31 @@ local LogoId = "rbxassetid://99988283073275"
 
 local targetParent = (gethui and gethui()) or PlayerGui
 
--- Remove old GUI
 local oldGui = targetParent:FindFirstChild("DATKITS HUB PREMIUM")
-if oldGui then
-	oldGui:Destroy()
-end
+if oldGui then oldGui:Destroy() end
+local oldCircle = targetParent:FindFirstChild("AimbotFOVCircle")
+if oldCircle then oldCircle:Destroy() end
 
 --// STATE
 local MenuOpen = true
 
 --// AIMBOT STATE
 local AimbotEnabled = false
-local AimbotFOV = 150
-local AimbotSmoothness = 0.25
+local AimbotFOV = 200
+local AimbotSmoothness = 0.35
 local AimbotTeamCheck = true
-local AimbotVisibleCheck = true
+local AimbotWallCheck = true
+local AimbotHoldKey = true          -- Chỉ aim khi giữ chuột phải
+local AimbotPrediction = true       -- Dự đoán vị trí
+local AimbotPredictionAmount = 0.15 -- Hệ số dự đoán
 local AimbotTargetPart = "Head"
+local AimbotMaxDistance = 1000      -- Khoảng cách tối đa (studs)
+local AimbotIgnoreKnocked = true    -- Bỏ qua địch gục
+
 local CurrentTarget = nil
+local CurrentTargetPart = nil
+local LastTargetTime = 0
+local StickyTargetDuration = 0.5
 
 --// COLORS
 local RED = Color3.fromRGB(220, 40, 55)
@@ -76,10 +84,10 @@ MenuStroke.Parent = MenuButton
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 250, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -210)
 MainFrame.BackgroundColor3 = BACKGROUND
-MainFrame.BackgroundTransparency = 0.35
+MainFrame.BackgroundTransparency = 0.15
 MainFrame.BorderSizePixel = 0
 
 local MainCorner = Instance.new("UICorner")
@@ -93,12 +101,11 @@ MainStroke.Parent = MainFrame
 
 --// BACKGROUND IMAGE
 local BackgroundImage = Instance.new("ImageLabel")
-BackgroundImage.Name = "VirexBackgroundImage"
 BackgroundImage.Parent = MainFrame
 BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
 BackgroundImage.BackgroundTransparency = 1
 BackgroundImage.Image = LogoId
-BackgroundImage.ImageTransparency = 0.85
+BackgroundImage.ImageTransparency = 0.88
 BackgroundImage.ScaleType = Enum.ScaleType.Crop
 BackgroundImage.ZIndex = 0
 
@@ -113,7 +120,6 @@ TopBar.Size = UDim2.new(1, 0, 0, 40)
 TopBar.BackgroundTransparency = 1
 TopBar.ZIndex = 2
 
---// LOGO
 local Logo = Instance.new("ImageLabel")
 Logo.Parent = TopBar
 Logo.Size = UDim2.new(0, 30, 0, 30)
@@ -121,10 +127,9 @@ Logo.Position = UDim2.new(0, 7, 0, 5)
 Logo.BackgroundTransparency = 1
 Logo.Image = LogoId
 
---// TITLE
 local Title = Instance.new("TextLabel")
 Title.Parent = TopBar
-Title.Size = UDim2.new(0, 145, 0, 30)
+Title.Size = UDim2.new(0, 160, 0, 30)
 Title.Position = UDim2.new(0, 42, 0, 5)
 Title.BackgroundTransparency = 1
 Title.Text = "DATKITS HUB PREMIUM"
@@ -133,7 +138,6 @@ Title.TextSize = 15
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
---// CLOSE BUTTON
 local CloseButton = Instance.new("TextButton")
 CloseButton.Parent = TopBar
 CloseButton.Size = UDim2.new(0, 28, 0, 28)
@@ -149,159 +153,162 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 7)
 CloseCorner.Parent = CloseButton
 
---// CONTENT
-local Content = Instance.new("Frame")
+--// CONTENT (Scroll)
+local Content = Instance.new("ScrollingFrame")
 Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 240)
+Content.Size = UDim2.new(1, -20, 1, -95)
 Content.Position = UDim2.new(0, 10, 0, 50)
 Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ScrollBarThickness = 3
+Content.ScrollBarImageColor3 = RED
+Content.CanvasSize = UDim2.new(0, 0, 0, 0)
+Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Content.ZIndex = 3
 
--- Aimbot Toggle
-local AimbotButton = Instance.new("TextButton")
-AimbotButton.Parent = Content
-AimbotButton.Size = UDim2.new(1, 0, 0, 38)
-AimbotButton.Position = UDim2.new(0, 0, 0, 0)
-AimbotButton.BackgroundColor3 = BUTTON
-AimbotButton.Text = "Aimbot : OFF"
-AimbotButton.TextColor3 = TEXT
-AimbotButton.TextSize = 13
-AimbotButton.Font = Enum.Font.GothamBold
-AimbotButton.AutoButtonColor = false
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Content
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 6)
 
-local AimbotCorner = Instance.new("UICorner")
-AimbotCorner.CornerRadius = UDim.new(0, 7)
-AimbotCorner.Parent = AimbotButton
+--// HELPER: Tạo button
+local function MakeButton(text, color)
+	local btn = Instance.new("TextButton")
+	btn.Parent = Content
+	btn.Size = UDim2.new(1, 0, 0, 38)
+	btn.BackgroundColor3 = color or BUTTON
+	btn.Text = text
+	btn.TextColor3 = TEXT
+	btn.TextSize = 13
+	btn.Font = Enum.Font.GothamBold
+	btn.AutoButtonColor = false
+	btn.BorderSizePixel = 0
 
--- FOV Button
-local FOVButton = Instance.new("TextButton")
-FOVButton.Parent = Content
-FOVButton.Size = UDim2.new(1, 0, 0, 38)
-FOVButton.Position = UDim2.new(0, 0, 0, 46)
-FOVButton.BackgroundColor3 = BUTTON
-FOVButton.Text = "FOV : 150"
-FOVButton.TextColor3 = TEXT
-FOVButton.TextSize = 13
-FOVButton.Font = Enum.Font.GothamBold
-FOVButton.AutoButtonColor = false
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 7)
+	c.Parent = btn
 
-local FOVCorner = Instance.new("UICorner")
-FOVCorner.CornerRadius = UDim.new(0, 7)
-FOVCorner.Parent = FOVButton
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = RED
+	stroke.Thickness = 1
+	stroke.Transparency = 0.7
+	stroke.Parent = btn
 
--- Smoothness Button
-local SmoothButton = Instance.new("TextButton")
-SmoothButton.Parent = Content
-SmoothButton.Size = UDim2.new(1, 0, 0, 38)
-SmoothButton.Position = UDim2.new(0, 0, 0, 92)
-SmoothButton.BackgroundColor3 = BUTTON
-SmoothButton.Text = "Smoothness : 0.25"
-SmoothButton.TextColor3 = TEXT
-SmoothButton.TextSize = 13
-SmoothButton.Font = Enum.Font.GothamBold
-SmoothButton.AutoButtonColor = false
+	return btn
+end
 
-local SmoothCorner = Instance.new("UICorner")
-SmoothCorner.CornerRadius = UDim.new(0, 7)
-SmoothCorner.Parent = SmoothButton
+--// BUTTONS
+local AimbotButton = MakeButton("Aimbot : OFF")
+local HoldKeyButton = MakeButton("Hold to Aim : ON", RED)
+local FOVButton = MakeButton("FOV : 200")
+local SmoothButton = MakeButton("Smoothness : 0.35")
+local TeamCheckButton = MakeButton("Team Check : ON", RED)
+local WallCheckButton = MakeButton("Wall Check : ON", RED)
+local PredictionButton = MakeButton("Prediction : ON", RED)
+local PredictionAmtButton = MakeButton("Prediction Amt : 0.15")
+local TargetPartButton = MakeButton("Target : Head")
+local MaxDistButton = MakeButton("Max Distance : 1000")
+local IgnoreKnockedButton = MakeButton("Ignore Knocked : ON", RED)
 
--- Team Check Button
-local TeamCheckButton = Instance.new("TextButton")
-TeamCheckButton.Parent = Content
-TeamCheckButton.Size = UDim2.new(1, 0, 0, 38)
-TeamCheckButton.Position = UDim2.new(0, 0, 0, 138)
-TeamCheckButton.BackgroundColor3 = RED
-TeamCheckButton.Text = "Team Check : ON"
-TeamCheckButton.TextColor3 = TEXT
-TeamCheckButton.TextSize = 13
-TeamCheckButton.Font = Enum.Font.GothamBold
-TeamCheckButton.AutoButtonColor = false
-
-local TeamCheckCorner = Instance.new("UICorner")
-TeamCheckCorner.CornerRadius = UDim.new(0, 7)
-TeamCheckCorner.Parent = TeamCheckButton
-
--- Target Part Button
-local TargetPartButton = Instance.new("TextButton")
-TargetPartButton.Parent = Content
-TargetPartButton.Size = UDim2.new(1, 0, 0, 38)
-TargetPartButton.Position = UDim2.new(0, 0, 0, 184)
-TargetPartButton.BackgroundColor3 = BUTTON
-TargetPartButton.Text = "Target : Head"
-TargetPartButton.TextColor3 = TEXT
-TargetPartButton.TextSize = 13
-TargetPartButton.Font = Enum.Font.GothamBold
-TargetPartButton.AutoButtonColor = false
-
-local TargetPartCorner = Instance.new("UICorner")
-TargetPartCorner.CornerRadius = UDim.new(0, 7)
-TargetPartCorner.Parent = TargetPartButton
-
---// AIMBOT TOGGLE
+--// TOGGLE: AIMBOT
 AimbotButton.MouseButton1Click:Connect(function()
 	AimbotEnabled = not AimbotEnabled
-
-	if AimbotEnabled then
-		AimbotButton.Text = "Aimbot : ON"
-		AimbotButton.BackgroundColor3 = RED
-	else
-		AimbotButton.Text = "Aimbot : OFF"
-		AimbotButton.BackgroundColor3 = BUTTON
+	AimbotButton.Text = "Aimbot : " .. (AimbotEnabled and "ON" or "OFF")
+	AimbotButton.BackgroundColor3 = AimbotEnabled and RED or BUTTON
+	if not AimbotEnabled then
 		CurrentTarget = nil
+		CurrentTargetPart = nil
 	end
 end)
 
---// FOV CYCLE
-local FOVOptions = {50, 100, 150, 200, 300, 500}
-local FOVIndex = 3
+--// TOGGLE: HOLD KEY
+HoldKeyButton.MouseButton1Click:Connect(function()
+	AimbotHoldKey = not AimbotHoldKey
+	HoldKeyButton.Text = "Hold to Aim : " .. (AimbotHoldKey and "ON" or "OFF")
+	HoldKeyButton.BackgroundColor3 = AimbotHoldKey and RED or BUTTON
+end)
 
+--// CYCLE: FOV
+local FOVOptions = {50, 100, 150, 200, 300, 400, 600, 800}
+local FOVIndex = 4
 FOVButton.MouseButton1Click:Connect(function()
 	FOVIndex += 1
-	if FOVIndex > #FOVOptions then
-		FOVIndex = 1
-	end
+	if FOVIndex > #FOVOptions then FOVIndex = 1 end
 	AimbotFOV = FOVOptions[FOVIndex]
 	FOVButton.Text = "FOV : " .. AimbotFOV
 end)
 
---// SMOOTHNESS CYCLE
-local SmoothOptions = {0.05, 0.1, 0.15, 0.25, 0.35, 0.5, 1}
-local SmoothIndex = 4
-
+--// CYCLE: SMOOTHNESS
+local SmoothOptions = {0.05, 0.1, 0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1}
+local SmoothIndex = 6
 SmoothButton.MouseButton1Click:Connect(function()
 	SmoothIndex += 1
-	if SmoothIndex > #SmoothOptions then
-		SmoothIndex = 1
-	end
+	if SmoothIndex > #SmoothOptions then SmoothIndex = 1 end
 	AimbotSmoothness = SmoothOptions[SmoothIndex]
 	SmoothButton.Text = "Smoothness : " .. AimbotSmoothness
 end)
 
---// TEAM CHECK TOGGLE
+--// TOGGLE: TEAM CHECK
 TeamCheckButton.MouseButton1Click:Connect(function()
 	AimbotTeamCheck = not AimbotTeamCheck
-
-	if AimbotTeamCheck then
-		TeamCheckButton.Text = "Team Check : ON"
-		TeamCheckButton.BackgroundColor3 = RED
-	else
-		TeamCheckButton.Text = "Team Check : OFF"
-		TeamCheckButton.BackgroundColor3 = BUTTON
-	end
+	TeamCheckButton.Text = "Team Check : " .. (AimbotTeamCheck and "ON" or "OFF")
+	TeamCheckButton.BackgroundColor3 = AimbotTeamCheck and RED or BUTTON
 end)
 
---// TARGET PART CYCLE
+--// TOGGLE: WALL CHECK
+WallCheckButton.MouseButton1Click:Connect(function()
+	AimbotWallCheck = not AimbotWallCheck
+	WallCheckButton.Text = "Wall Check : " .. (AimbotWallCheck and "ON" or "OFF")
+	WallCheckButton.BackgroundColor3 = AimbotWallCheck and RED or BUTTON
+end)
+
+--// TOGGLE: PREDICTION
+PredictionButton.MouseButton1Click:Connect(function()
+	AimbotPrediction = not AimbotPrediction
+	PredictionButton.Text = "Prediction : " .. (AimbotPrediction and "ON" or "OFF")
+	PredictionButton.BackgroundColor3 = AimbotPrediction and RED or BUTTON
+end)
+
+--// CYCLE: PREDICTION AMOUNT
+local PredAmtOptions = {0.05, 0.1, 0.15, 0.2, 0.3, 0.5}
+local PredAmtIndex = 3
+PredictionAmtButton.MouseButton1Click:Connect(function()
+	PredAmtIndex += 1
+	if PredAmtIndex > #PredAmtOptions then PredAmtIndex = 1 end
+	AimbotPredictionAmount = PredAmtOptions[PredAmtIndex]
+	PredictionAmtButton.Text = "Prediction Amt : " .. AimbotPredictionAmount
+end)
+
+--// CYCLE: TARGET PART
+local TargetParts = {"Head", "HumanoidRootPart", "UpperTorso", "Torso", "LowerTorso"}
+local TargetPartIndex = 1
 TargetPartButton.MouseButton1Click:Connect(function()
-	if AimbotTargetPart == "Head" then
-		AimbotTargetPart = "HumanoidRootPart"
-		TargetPartButton.Text = "Target : Body"
-	else
-		AimbotTargetPart = "Head"
-		TargetPartButton.Text = "Target : Head"
-	end
+	TargetPartIndex += 1
+	if TargetPartIndex > #TargetParts then TargetPartIndex = 1 end
+	AimbotTargetPart = TargetParts[TargetPartIndex]
+	local displayName = AimbotTargetPart
+	if displayName == "HumanoidRootPart" then displayName = "Body" end
+	TargetPartButton.Text = "Target : " .. displayName
 end)
 
---// FOV CIRCLE DRAWING
+--// CYCLE: MAX DISTANCE
+local DistOptions = {200, 500, 1000, 2000, 5000}
+local DistIndex = 3
+MaxDistButton.MouseButton1Click:Connect(function()
+	DistIndex += 1
+	if DistIndex > #DistOptions then DistIndex = 1 end
+	AimbotMaxDistance = DistOptions[DistIndex]
+	MaxDistButton.Text = "Max Distance : " .. AimbotMaxDistance
+end)
+
+--// TOGGLE: IGNORE KNOCKED
+IgnoreKnockedButton.MouseButton1Click:Connect(function()
+	AimbotIgnoreKnocked = not AimbotIgnoreKnocked
+	IgnoreKnockedButton.Text = "Ignore Knocked : " .. (AimbotIgnoreKnocked and "ON" or "OFF")
+	IgnoreKnockedButton.BackgroundColor3 = AimbotIgnoreKnocked and RED or BUTTON
+end)
+
+--// FOV CIRCLE
 local FOVCircleGui = Instance.new("ScreenGui")
 FOVCircleGui.Name = "AimbotFOVCircle"
 FOVCircleGui.ResetOnSpawn = false
@@ -310,7 +317,6 @@ FOVCircleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 FOVCircleGui.Parent = targetParent
 
 local FOVCircle = Instance.new("Frame")
-FOVCircle.Name = "FOVCircle"
 FOVCircle.Parent = FOVCircleGui
 FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 FOVCircle.BackgroundTransparency = 1
@@ -326,111 +332,241 @@ FOVCircleStroke.Thickness = 1.5
 FOVCircleStroke.Transparency = 0.3
 FOVCircleStroke.Parent = FOVCircle
 
---// UPDATE FOV CIRCLE
+--// TARGET INDICATOR (đường chỉ tới địch)
+local TargetLine = Instance.new("Frame")
+TargetLine.Parent = FOVCircleGui
+TargetLine.BackgroundColor3 = RED
+TargetLine.BorderSizePixel = 0
+TargetLine.BackgroundTransparency = 0.3
+TargetLine.AnchorPoint = Vector2.new(0.5, 0)
+TargetLine.Visible = false
+TargetLine.ZIndex = 5
+
+--// UPDATE CIRCLE
 RunService.RenderStepped:Connect(function()
 	if Camera then
-		FOVCircle.Position = UDim2.new(0, Camera.ViewportSize.X / 2, 0, Camera.ViewportSize.Y / 2)
+		local vp = Camera.ViewportSize
+		FOVCircle.Position = UDim2.new(0, vp.X / 2, 0, vp.Y / 2)
+		FOVCircle.Size = UDim2.new(0, AimbotFOV * 2, 0, AimbotFOV * 2)
+		FOVCircle.Visible = AimbotEnabled
 	end
-	FOVCircle.Size = UDim2.new(0, AimbotFOV * 2, 0, AimbotFOV * 2)
-	FOVCircle.Visible = AimbotEnabled
 end)
 
---// AIMBOT FUNCTIONS
-local function IsVisible(part)
-	if not AimbotVisibleCheck then return true end
-	if not part then return false end
+--// HELPERS
+local function GetTargetPart(character)
+	if not character then return nil end
+	local part = character:FindFirstChild(AimbotTargetPart)
+	if part then return part end
+	-- Fallback nếu part không tồn tại
+	return character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Head")
+end
+
+local function IsVisible(targetPart)
+	if not AimbotWallCheck then return true end
+	if not targetPart then return false end
 	if not Camera then return false end
 
 	local origin = Camera.CFrame.Position
-	local direction = (part.Position - origin).Unit * (part.Position - origin).Magnitude
+	local targetPos = targetPart.Position
+	local direction = targetPos - origin
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	rayParams.FilterDescendantsInstances = {LocalPlayer.Character, CurrentTarget}
+	rayParams.FilterDescendantsInstances = {
+		LocalPlayer.Character,
+		targetPart.Parent,
+		CurrentTargetPart and CurrentTargetPart.Parent or nil
+	}
+	rayParams.IgnoreWater = true
 
 	local result = Workspace:Raycast(origin, direction, rayParams)
 	if result then
-		return result.Instance:IsDescendantOf(part.Parent)
+		return false
 	end
-
 	return true
 end
 
-local function GetTargetPart(character)
-	if not character then return nil end
-	if AimbotTargetPart == "Head" then
-		return character:FindFirstChild("Head")
-	else
-		return character:FindFirstChild("HumanoidRootPart")
-	end
+local function IsKnocked(character)
+	-- Phát hiện địch đã gục (chỉ áp dụng cho 1 số game)
+	if not character then return false end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return false end
+	if humanoid.Health <= 0 then return true end
+	-- Check "Knocked"/"Downed" state qua attribute nếu game có
+	if character:GetAttribute("Knocked") == true then return true end
+	if character:GetAttribute("Downed") == true then return true end
+	-- Một số game đổi tên part "Head" thành "KnockedHead"
+	if character:FindFirstChild("KnockedHead") then return true end
+	return false
 end
 
-local function GetClosestPlayer()
+local function PredictPosition(targetPart, player)
+	if not AimbotPrediction then return targetPart.Position end
+	local character = player.Character
+	if not character then return targetPart.Position end
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return targetPart.Position end
+	local velocity = hrp.AssemblyLinearVelocity
+	local predicted = targetPart.Position + velocity * AimbotPredictionAmount
+	-- Không dự đoán quá xa
+	local dist = (predicted - targetPart.Position).Magnitude
+	if dist > 50 then
+		return targetPart.Position + velocity.Unit * 50
+	end
+	return predicted
+end
+
+local function GetClosestTarget()
 	if not Camera then return nil, nil end
 
-	local closestDist = math.huge
-	local closestTarget = nil
-	local closestPart = nil
+	local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+	local closestScore = math.huge
+	local bestPlayer = nil
+	local bestPart = nil
 
-	local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+	local myChar = LocalPlayer.Character
+	local myPos = myChar and myChar:FindFirstChild("HumanoidRootPart") and myChar.HumanoidRootPart.Position or Camera.CFrame.Position
 
 	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			-- Team check
-			if AimbotTeamCheck and player.Team == LocalPlayer.Team and player.Team ~= nil then
-				continue
-			end
+		if player == LocalPlayer then continue end
 
-			local character = player.Character
-			if character then
-				local humanoid = character:FindFirstChildOfClass("Humanoid")
-				if humanoid and humanoid.Health > 0 then
-					local targetPart = GetTargetPart(character)
+		-- Team check
+		if AimbotTeamCheck and player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+			continue
+		end
 
-					if targetPart then
-						local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+		local character = player.Character
+		if not character then continue end
 
-						if onScreen then
-							local distance = (mousePos - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then continue end
 
-							if distance < AimbotFOV and distance < closestDist then
-								if IsVisible(targetPart) then
-									closestDist = distance
-									closestTarget = player
-									closestPart = targetPart
-								end
-							end
-						end
-					end
-				end
-			end
+		if AimbotIgnoreKnocked and IsKnocked(character) then continue end
+
+		local targetPart = GetTargetPart(character)
+		if not targetPart then continue end
+
+		-- Distance check
+		local dist3D = (targetPart.Position - myPos).Magnitude
+		if dist3D > AimbotMaxDistance then continue end
+
+		-- Screen position check
+		local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+		if not onScreen then continue end
+
+		local screenPos2D = Vector2.new(screenPoint.X, screenPoint.Y)
+		local dist2D = (viewportCenter - screenPos2D).Magnitude
+
+		if dist2D > AimbotFOV then continue end
+
+		-- Wall check
+		if not IsVisible(targetPart) then continue end
+
+		-- Score: kết hợp khoảng cách màn hình (chính) + khoảng cách 3D (phụ)
+		local score = dist2D + dist3D * 0.05
+
+		if score < closestScore then
+			closestScore = score
+			bestPlayer = player
+			bestPart = targetPart
 		end
 	end
 
-	return closestTarget, closestPart
+	return bestPlayer, bestPart
 end
 
---// AIMBOT LOOP
-RunService.RenderStepped:Connect(function()
+--// CHECK HOLD KEY
+local function IsAimKeyHeld()
+	if not AimbotHoldKey then return true end
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return true end
+	if UserInputService:IsKeyDown(Enum.KeyCode.E) then return true end
+	return false
+end
+
+--// AIMBOT LOOP (dùng RenderStepped để mượt)
+RunService.RenderStepped:Connect(function(dt)
 	if not AimbotEnabled then
 		CurrentTarget = nil
+		CurrentTargetPart = nil
+		TargetLine.Visible = false
 		return
 	end
 
 	if not Camera then return end
 
-	local targetPlayer, targetPart = GetClosestPlayer()
-	CurrentTarget = targetPlayer
+	-- Hold key
+	if not IsAimKeyHeld() then
+		TargetLine.Visible = false
+		return
+	end
 
-	if targetPart and targetPart.Parent then
-		local targetPos = targetPart.Position
+	local now = tick()
+
+	-- Sticky target: giữ target cũ trong 0.5s nếu vẫn còn valid
+	if CurrentTarget and CurrentTargetPart and (now - LastTargetTime) < StickyTargetDuration then
+		local char = CurrentTarget.Character
+		if char and CurrentTargetPart.Parent == char then
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				-- Vẫn giữ target cũ, không cần tìm mới
+				-- (nhưng vẫn cần check FOV, nếu ra ngoài FOV thì bỏ)
+				local sp, onScreen = Camera:WorldToViewportPoint(CurrentTargetPart.Position)
+				if onScreen then
+					local dist2D = (Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2) - Vector2.new(sp.X, sp.Y)).Magnitude
+					if dist2D <= AimbotFOV * 1.5 then
+						-- Vẫn aim target cũ
+						goto aim
+					end
+				end
+			end
+		end
+		-- Nếu target cũ invalid -> reset
+		CurrentTarget = nil
+		CurrentTargetPart = nil
+	end
+
+	-- Tìm target mới
+	local newTarget, newPart = GetClosestTarget()
+	if newTarget and newPart then
+		CurrentTarget = newTarget
+		CurrentTargetPart = newPart
+		LastTargetTime = now
+	end
+
+	::aim::
+
+	if CurrentTargetPart and CurrentTargetPart.Parent then
+		local aimPos = PredictPosition(CurrentTargetPart, CurrentTarget)
+
+		-- Cập nhật đường chỉ
+		local sp, onScreen = Camera:WorldToViewportPoint(CurrentTargetPart.Position)
+		if onScreen then
+			local vp = Camera.ViewportSize
+			local center = Vector2.new(vp.X / 2, vp.Y / 2)
+			local targetScreen = Vector2.new(sp.X, sp.Y)
+			local diff = targetScreen - center
+			local length = diff.Magnitude
+			local angle = math.deg(math.atan2(diff.Y, diff.X)) - 90
+
+			TargetLine.Size = UDim2.new(0, 1.5, 0, length)
+			TargetLine.Position = UDim2.new(0, center.X, 0, center.Y)
+			TargetLine.Rotation = angle
+			TargetLine.Visible = true
+		else
+			TargetLine.Visible = false
+		end
+
+		-- Camera aim
+		local currentCF = Camera.CFrame
+		local newCF = CFrame.new(currentCF.Position, aimPos)
 
 		if AimbotSmoothness >= 1 then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+			Camera.CFrame = newCF
 		else
-			local currentCFrame = Camera.CFrame
-			local newCFrame = CFrame.new(currentCFrame.Position, targetPos)
-			Camera.CFrame = currentCFrame:Lerp(newCFrame, AimbotSmoothness)
+			-- Smoothness chuẩn theo delta time
+			-- smoothFactor: 0.05 = rất chậm, 1 = tức thời
+			local alpha = math.clamp(AimbotSmoothness * (dt * 60), 0, 1)
+			Camera.CFrame = currentCF:Lerp(newCF, alpha)
 		end
 	end
 end)
@@ -443,11 +579,9 @@ local startPos
 TopBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.Touch then
-
 		dragging = true
 		dragStart = input.Position
 		startPos = MainFrame.Position
-
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
 				dragging = false
@@ -459,13 +593,10 @@ end)
 TopBar.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement
 		or input.UserInputType == Enum.UserInputType.Touch then
-
 		local dragInput = input
-
 		dragInput.Changed:Connect(function()
 			if dragging then
 				local delta = dragInput.Position - dragStart
-
 				MainFrame.Position = UDim2.new(
 					startPos.X.Scale,
 					startPos.X.Offset + delta.X,
@@ -480,7 +611,6 @@ end)
 --// OPEN/CLOSE MENU
 local function SetMenuVisible(visible)
 	MenuOpen = visible
-
 	if visible then
 		MainFrame.Visible = true
 		MenuButton.Text = "X"
@@ -498,4 +628,5 @@ CloseButton.MouseButton1Click:Connect(function()
 	SetMenuVisible(false)
 end)
 
-print("DATKITS HUB PREMIUM - AIMBOT loaded.")
+print("DATKITS HUB PREMIUM - AIMBOT PRO loaded.")
+print("Hold RIGHT MOUSE or E to aim.")
