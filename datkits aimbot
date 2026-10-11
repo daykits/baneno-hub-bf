@@ -1,656 +1,832 @@
---// DATKITS HUB PREMIUM
---// Red Theme + Open/Close Menu + Noclip
+-- Moon Killer v1.2 - Final Organized Version
+-- Fixed the order of elements in the UI while keeping the multi-language system
 
-local Players = game:GetService("Players")
-local ProximityPromptService = game:GetService("ProximityPromptService")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
---// SETTINGS
-local LogoId = "rbxassetid://99988283073275"
-
-local targetParent = (gethui and gethui()) or PlayerGui
-
--- Remove old GUI
-local oldGui = targetParent:FindFirstChild("VirexHubGui")
-if oldGui then
-	oldGui:Destroy()
-end
-
---// STATE
-local AntiHitEnabled = false
-local SpeedOverrideEnabled = false
-local NoclipEnabled = false
-local TargetSpeed = 700
-local IsTeleporting = false
-local MenuOpen = true
-
---// COLORS
-local RED = Color3.fromRGB(220, 40, 55)
-local LIGHT_RED = Color3.fromRGB(255, 130, 140)
-local DARK_RED = Color3.fromRGB(150, 25, 40)
-
-local BACKGROUND = Color3.fromRGB(15, 15, 22)
-local BUTTON = Color3.fromRGB(30, 30, 42)
-local TEXT = Color3.fromRGB(240, 240, 245)
-
---// TELEPORT POINTS
-local TeleportPoints = {
-	Vector3.new(228.65, 30.27, 1526.45),
-	Vector3.new(230.68, 30.26, 1584.97)
+getgenv().MoonConfig = {
+    Aimbot = true,
+    ESP = true,
+    AutoShoot = false,
+    AutoHealth = true,
+    OneShotKill = true,
+    AimKey = "MouseButton2",
+    AimPart = "Head",
+    FOV = 120,
+    Smoothness = 0.3,
+    TeamCheck = true,
+    BoxColor = Color3.fromRGB(0, 255, 0),
+    BoxThickness = 1,
+    VisibleOnly = true,
+    WallCheck = true,
+    ShowFOV = true,
+    UIKey = "F5",
+    Language = "Arabic" -- Added language option
 }
 
---// GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DATKITS HUB PREMIUM"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = targetParent
-
---// OPEN/CLOSE BUTTON
-local MenuButton = Instance.new("TextButton")
-MenuButton.Name = "MenuButton"
-MenuButton.Parent = ScreenGui
-MenuButton.Size = UDim2.new(0, 45, 0, 45)
-MenuButton.Position = UDim2.new(0, 15, 0.5, -22)
-MenuButton.BackgroundColor3 = BACKGROUND
-MenuButton.BackgroundTransparency = 0.1
-MenuButton.Text = "V"
-MenuButton.TextColor3 = LIGHT_RED
-MenuButton.TextSize = 22
-MenuButton.Font = Enum.Font.GothamBold
-MenuButton.AutoButtonColor = false
-
-local MenuCorner = Instance.new("UICorner")
-MenuCorner.CornerRadius = UDim.new(0, 10)
-MenuCorner.Parent = MenuButton
-
-local MenuStroke = Instance.new("UIStroke")
-MenuStroke.Color = RED
-MenuStroke.Thickness = 2
-MenuStroke.Parent = MenuButton
-
---// MAIN FRAME
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 240, 0, 220)
-MainFrame.Position = UDim2.new(0.5, -120, 0.5, -110)
-MainFrame.BackgroundColor3 = BACKGROUND
-MainFrame.BackgroundTransparency = 0.35
-MainFrame.BorderSizePixel = 0
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 10)
-MainCorner.Parent = MainFrame
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = RED
-MainStroke.Thickness = 1.5
-MainStroke.Parent = MainFrame
-
---// BACKGROUND IMAGE
-local BackgroundImage = Instance.new("ImageLabel")
-BackgroundImage.Name = "VirexBackgroundImage"
-BackgroundImage.Parent = MainFrame
-BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
-BackgroundImage.BackgroundTransparency = 1
-BackgroundImage.Image = LogoId
-BackgroundImage.ImageTransparency = 0.85
-BackgroundImage.ScaleType = Enum.ScaleType.Crop
-BackgroundImage.ZIndex = 0
-
-local BackgroundCorner = Instance.new("UICorner")
-BackgroundCorner.CornerRadius = UDim.new(0, 10)
-BackgroundCorner.Parent = BackgroundImage
-
---// TOP BAR
-local TopBar = Instance.new("Frame")
-TopBar.Parent = MainFrame
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundTransparency = 1
-TopBar.ZIndex = 2
-
---// LOGO
-local Logo = Instance.new("ImageLabel")
-Logo.Parent = TopBar
-Logo.Size = UDim2.new(0, 30, 0, 30)
-Logo.Position = UDim2.new(0, 7, 0, 5)
-Logo.BackgroundTransparency = 1
-Logo.Image = LogoId
-
---// TITLE
-local Title = Instance.new("TextLabel")
-Title.Parent = TopBar
-Title.Size = UDim2.new(0, 145, 0, 30)
-Title.Position = UDim2.new(0, 42, 0, 5)
-Title.BackgroundTransparency = 1
-Title.Text = "DATKITS HUB PREMIUM"
-Title.TextColor3 = LIGHT_RED
-Title.TextSize = 15
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-
---// CLOSE BUTTON
-local CloseButton = Instance.new("TextButton")
-CloseButton.Parent = TopBar
-CloseButton.Size = UDim2.new(0, 28, 0, 28)
-CloseButton.Position = UDim2.new(1, -35, 0, 6)
-CloseButton.BackgroundColor3 = DARK_RED
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 14
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.AutoButtonColor = false
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 7)
-CloseCorner.Parent = CloseButton
-
---// TABS
-local MainTab = Instance.new("TextButton")
-MainTab.Parent = MainFrame
-MainTab.Size = UDim2.new(0, 105, 0, 28)
-MainTab.Position = UDim2.new(0, 10, 0, 45)
-MainTab.BackgroundColor3 = RED
-MainTab.Text = "Main"
-MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-MainTab.TextSize = 13
-MainTab.Font = Enum.Font.GothamBold
-MainTab.AutoButtonColor = false
-MainTab.ZIndex = 3
-
-local MainTabCorner = Instance.new("UICorner")
-MainTabCorner.CornerRadius = UDim.new(0, 7)
-MainTabCorner.Parent = MainTab
-
-local MiscTab = Instance.new("TextButton")
-MiscTab.Parent = MainFrame
-MiscTab.Size = UDim2.new(0, 105, 0, 28)
-MiscTab.Position = UDim2.new(0, 122, 0, 45)
-MiscTab.BackgroundColor3 = BUTTON
-MiscTab.Text = "Misc"
-MiscTab.TextColor3 = TEXT
-MiscTab.TextSize = 13
-MiscTab.Font = Enum.Font.GothamBold
-MiscTab.AutoButtonColor = false
-MiscTab.ZIndex = 3
-
-local MiscCorner = Instance.new("UICorner")
-MiscCorner.CornerRadius = UDim.new(0, 7)
-MiscCorner.Parent = MiscTab
-
---// CONTENT
-local Content = Instance.new("Frame")
-Content.Parent = MainFrame
-Content.Size = UDim2.new(1, -20, 0, 130)
-Content.Position = UDim2.new(0, 10, 0, 78)
-Content.BackgroundTransparency = 1
-Content.ZIndex = 3
-
---// ANTI HIT
-local AntiHitButton = Instance.new("TextButton")
-AntiHitButton.Parent = Content
-AntiHitButton.Size = UDim2.new(1, 0, 0, 35)
-AntiHitButton.Position = UDim2.new(0, 0, 0, 0)
-AntiHitButton.BackgroundColor3 = BUTTON
-AntiHitButton.Text = "Anti-Hit : OFF"
-AntiHitButton.TextColor3 = TEXT
-AntiHitButton.TextSize = 13
-AntiHitButton.Font = Enum.Font.GothamBold
-AntiHitButton.AutoButtonColor = false
-
-local AntiHitCorner = Instance.new("UICorner")
-AntiHitCorner.CornerRadius = UDim.new(0, 7)
-AntiHitCorner.Parent = AntiHitButton
-
---// SPEED
-local SpeedButton = Instance.new("TextButton")
-SpeedButton.Parent = Content
-SpeedButton.Size = UDim2.new(1, 0, 0, 35)
-SpeedButton.Position = UDim2.new(0, 0, 0, 43)
-SpeedButton.BackgroundColor3 = BUTTON
-SpeedButton.Text = "Speed Override (700) : OFF"
-SpeedButton.TextColor3 = TEXT
-SpeedButton.TextSize = 13
-SpeedButton.Font = Enum.Font.GothamBold
-SpeedButton.AutoButtonColor = false
-
-local SpeedCorner = Instance.new("UICorner")
-SpeedCorner.CornerRadius = UDim.new(0, 7)
-SpeedCorner.Parent = SpeedButton
-
---// NOCLIP BUTTON
-local NoclipButton = Instance.new("TextButton")
-NoclipButton.Parent = Content
-NoclipButton.Size = UDim2.new(1, 0, 0, 35)
-NoclipButton.Position = UDim2.new(0, 0, 0, 86)
-NoclipButton.BackgroundColor3 = BUTTON
-NoclipButton.Text = "Noclip : OFF"
-NoclipButton.TextColor3 = TEXT
-NoclipButton.TextSize = 13
-NoclipButton.Font = Enum.Font.GothamBold
-NoclipButton.AutoButtonColor = false
-
-local NoclipCorner = Instance.new("UICorner")
-NoclipCorner.CornerRadius = UDim.new(0, 7)
-NoclipCorner.Parent = NoclipButton
-
---// MISC CONTENT
-local MiscContent = Instance.new("Frame")
-MiscContent.Parent = MainFrame
-MiscContent.Size = Content.Size
-MiscContent.Position = Content.Position
-MiscContent.BackgroundTransparency = 1
-MiscContent.Visible = false
-MiscContent.ZIndex = 3
-
--- Background selector
-local BackgroundButton = Instance.new("TextButton")
-BackgroundButton.Parent = MiscContent
-BackgroundButton.Size = UDim2.new(1, 0, 0, 35)
-BackgroundButton.Position = UDim2.new(0, 0, 0, 0)
-BackgroundButton.BackgroundColor3 = BUTTON
-BackgroundButton.Text = "Background : Virex"
-BackgroundButton.TextColor3 = TEXT
-BackgroundButton.TextSize = 13
-BackgroundButton.Font = Enum.Font.GothamBold
-BackgroundButton.AutoButtonColor = false
-
-local BackgroundCorner2 = Instance.new("UICorner")
-BackgroundCorner2.CornerRadius = UDim.new(0, 7)
-BackgroundCorner2.Parent = BackgroundButton
-
--- Scale selector
-local ScaleButton = Instance.new("TextButton")
-ScaleButton.Parent = MiscContent
-ScaleButton.Size = UDim2.new(1, 0, 0, 35)
-ScaleButton.Position = UDim2.new(0, 0, 0, 43)
-ScaleButton.BackgroundColor3 = BUTTON
-ScaleButton.Text = "GUI Scale : 1.0x"
-ScaleButton.TextColor3 = TEXT
-ScaleButton.TextSize = 13
-ScaleButton.Font = Enum.Font.GothamBold
-ScaleButton.AutoButtonColor = false
-
-local ScaleCorner = Instance.new("UICorner")
-ScaleCorner.CornerRadius = UDim.new(0, 7)
-ScaleCorner.Parent = ScaleButton
-
---// TAB SWITCHING
-MainTab.MouseButton1Click:Connect(function()
-	MainTab.BackgroundColor3 = RED
-	MiscTab.BackgroundColor3 = BUTTON
-
-	Content.Visible = true
-	MiscContent.Visible = false
-end)
-
-MiscTab.MouseButton1Click:Connect(function()
-	MiscTab.BackgroundColor3 = RED
-	MainTab.BackgroundColor3 = BUTTON
-
-	Content.Visible = false
-	MiscContent.Visible = true
-end)
-
---// ANTI-HIT TOGGLE
-AntiHitButton.MouseButton1Click:Connect(function()
-	AntiHitEnabled = not AntiHitEnabled
-
-	if AntiHitEnabled then
-		AntiHitButton.Text = "Anti-Hit : ON"
-		AntiHitButton.BackgroundColor3 = RED
-	else
-		AntiHitButton.Text = "Anti-Hit : OFF"
-		AntiHitButton.BackgroundColor3 = BUTTON
-	end
-end)
-
---// SPEED TOGGLE
-SpeedButton.MouseButton1Click:Connect(function()
-	SpeedOverrideEnabled = not SpeedOverrideEnabled
-
-	if SpeedOverrideEnabled then
-		SpeedButton.Text = "Speed Override (700) : ON"
-		SpeedButton.BackgroundColor3 = RED
-	else
-		SpeedButton.Text = "Speed Override (700) : OFF"
-		SpeedButton.BackgroundColor3 = BUTTON
-
-		local Character = LocalPlayer.Character
-		if Character then
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-			if Humanoid then
-				Humanoid.WalkSpeed = 16
-			end
-		end
-	end
-end)
-
---// NOCLIP TOGGLE
-NoclipButton.MouseButton1Click:Connect(function()
-	NoclipEnabled = not NoclipEnabled
-
-	if NoclipEnabled then
-		NoclipButton.Text = "Noclip : ON"
-		NoclipButton.BackgroundColor3 = RED
-	else
-		NoclipButton.Text = "Noclip : OFF"
-		NoclipButton.BackgroundColor3 = BUTTON
-
-		-- Restore collisions when disabling
-		local Character = LocalPlayer.Character
-		if Character then
-			for _, part in ipairs(Character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = true
-				end
-			end
-		end
-	end
-end)
-
---// NOCLIP LOOP
-RunService.Heartbeat:Connect(function()
-	if NoclipEnabled then
-		local Character = LocalPlayer.Character
-		if Character then
-			for _, part in ipairs(Character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
-				end
-			end
-		end
-	end
-end)
-
---// SPEED LOOP
-RunService.Heartbeat:Connect(function()
-	if SpeedOverrideEnabled then
-		local Character = LocalPlayer.Character
-
-		if Character then
-			local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-
-			if Humanoid then
-				Humanoid.WalkSpeed = TargetSpeed
-			end
-		end
-	end
-end)
-
---// BACKGROUND SELECTOR
-local BackgroundMode = 1
-
-BackgroundButton.MouseButton1Click:Connect(function()
-	BackgroundMode += 1
-
-	if BackgroundMode > 3 then
-		BackgroundMode = 1
-	end
-
-	if BackgroundMode == 1 then
-		BackgroundButton.Text = "Background : Virex"
-		BackgroundImage.Visible = true
-		MainFrame.BackgroundTransparency = 0.35
-
-	elseif BackgroundMode == 2 then
-		BackgroundButton.Text = "Background : Plain Black"
-		BackgroundImage.Visible = false
-		MainFrame.BackgroundTransparency = 0.05
-
-	elseif BackgroundMode == 3 then
-		BackgroundButton.Text = "Background : Transparent"
-		BackgroundImage.Visible = false
-		MainFrame.BackgroundTransparency = 0.75
-	end
-end)
-
---// GUI SCALE
-local ScaleOptions = {
-	0.8,
-	1.0,
-	1.2,
-	1.4
+-- Translation table
+local Translations = {
+    Arabic = {
+        title = "MOON KILLER v1.2",
+        aimbot = "Aimbot",
+        esp = "ESP",
+        autoshoot = "Auto Shoot",
+        autohealth = "Auto Health",
+        oneshotkill = "One Shot Kill",
+        teamcheck = "Team Check",
+        visibleonly = "Visible Only",
+        wallcheck = "Wall Check",
+        showfov = "Show FOV",
+        advanced_settings = "Advanced Settings",
+        aim_part = "Aim Part:",
+        fov_size = "FOV Size:",
+        smoothness = "Smoothness:",
+        switch_language = "Switch Language",
+        close = "✕",
+        on = "ON",
+        off = "OFF",
+        loaded = "Moon Killer loaded successfully!",
+        press_key = "Press %s to open/close the UI",
+        features = "Auto heal and one-shot kill enabled",
+        already_loaded = "Script already loaded!",
+        failed = "Failed to load script: %s"
+    },
+    English = {
+        title = "MOON KILLER v1.2",
+        aimbot = "Aimbot",
+        esp = "ESP",
+        autoshoot = "Auto Shoot",
+        autohealth = "Auto Health",
+        oneshotkill = "One Shot Kill",
+        teamcheck = "Team Check",
+        visibleonly = "Visible Only",
+        wallcheck = "Wall Check",
+        showfov = "Show FOV",
+        advanced_settings = "Advanced Settings",
+        aim_part = "Aim Part:",
+        fov_size = "FOV Size:",
+        smoothness = "Smoothness:",
+        switch_language = "Switch Language",
+        close = "✕",
+        on = "ON",
+        off = "OFF",
+        loaded = "Moon Killer loaded successfully!",
+        press_key = "Press %s to open/close the UI",
+        features = "Auto heal and one-shot kill enabled",
+        already_loaded = "Script already loaded!",
+        failed = "Failed to load script: %s"
+    }
 }
 
-local ScaleIndex = 2
-
-ScaleButton.MouseButton1Click:Connect(function()
-	ScaleIndex += 1
-
-	if ScaleIndex > #ScaleOptions then
-		ScaleIndex = 1
-	end
-
-	local Scale = ScaleOptions[ScaleIndex]
-
-	ScaleButton.Text = "GUI Scale : " .. Scale .. "x"
-
-	MainFrame.Size = UDim2.new(
-		0,
-		240 * Scale,
-		0,
-		220 * Scale
-	)
-
-	MainFrame.Position = UDim2.new(
-		0.5,
-		-(120 * Scale),
-		0.5,
-		-(110 * Scale)
-	)
-end)
-
---// DRAGGING
-local dragging = false
-local dragStart
-local startPos
-
-TopBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		dragging = true
-		dragStart = input.Position
-		startPos = MainFrame.Position
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-TopBar.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		local dragInput = input
-
-		dragInput.Changed:Connect(function()
-			if dragging then
-				local delta = dragInput.Position - dragStart
-
-				MainFrame.Position = UDim2.new(
-					startPos.X.Scale,
-					startPos.X.Offset + delta.X,
-					startPos.Y.Scale,
-					startPos.Y.Offset + delta.Y
-				)
-			end
-		end)
-	end
-end)
-
---// OPEN/CLOSE MENU
-local function SetMenuVisible(visible)
-	MenuOpen = visible
-
-	if visible then
-		MainFrame.Visible = true
-		MenuButton.Text = "X"
-	else
-		MainFrame.Visible = false
-		MenuButton.Text = "V"
-	end
+local function t(key)
+    return Translations[MoonConfig.Language][key] or key
 end
 
-MenuButton.MouseButton1Click:Connect(function()
-	SetMenuVisible(not MenuOpen)
-end)
+local function SafeLoad()
+    -- ===== [Core Aimbot System] =====
+    -- Core services
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local TweenService = game:GetService("TweenService")
+    local Workspace = game:GetService("Workspace")
+    local LocalPlayer = Players.LocalPlayer
+    local Camera = Workspace.CurrentCamera
 
-CloseButton.MouseButton1Click:Connect(function()
-	SetMenuVisible(false)
-end)
+    -- Drawing library
+    local DrawingLib = Drawing.new
+    local EspObjects = {}
+    local Circle = DrawingLib("Circle")
+    local connections = {}
+    local autoShooting = false
+    local lastDamageCheck = 0
+    local ui -- Define the UI variable here
 
---// TELEPORT OVERLAY
-local TeleportOverlay = Instance.new("Frame")
-TeleportOverlay.Parent = ScreenGui
-TeleportOverlay.Size = UDim2.new(1, 0, 1, 0)
-TeleportOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-TeleportOverlay.BackgroundTransparency = 0.25
-TeleportOverlay.Visible = false
-TeleportOverlay.ZIndex = 20
+    -- Circle setup
+    Circle.Visible = MoonConfig.ShowFOV
+    Circle.Thickness = 1
+    Circle.Color = Color3.fromRGB(255, 255, 255)
+    Circle.Transparency = 1
+    Circle.Radius = MoonConfig.FOV
+    Circle.Filled = false
+    Circle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
-local OverlayLogo = Instance.new("ImageLabel")
-OverlayLogo.Parent = TeleportOverlay
-OverlayLogo.Size = UDim2.new(0, 70, 0, 70)
-OverlayLogo.Position = UDim2.new(0.5, -35, 0.5, -80)
-OverlayLogo.BackgroundTransparency = 1
-OverlayLogo.Image = LogoId
-OverlayLogo.ZIndex = 21
+    -- === [Auto Heal Feature] ===
+    local function AutoHeal()
+        if not MoonConfig.AutoHealth then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.Health < 100 then
+            humanoid.Health = 100
+        end
+    end
 
-local OverlayText = Instance.new("TextLabel")
-OverlayText.Parent = TeleportOverlay
-OverlayText.Size = UDim2.new(0, 300, 0, 40)
-OverlayText.Position = UDim2.new(0.5, -150, 0.5, 0)
-OverlayText.BackgroundTransparency = 1
-OverlayText.Text = "anti hit almost loaded"
-OverlayText.TextColor3 = Color3.fromRGB(255, 255, 255)
-OverlayText.TextSize = 16
-OverlayText.Font = Enum.Font.GothamBold
-OverlayText.ZIndex = 21
+    -- Run auto heal
+    connections.autoHeal = RunService.Heartbeat:Connect(function()
+        AutoHeal()
+    end)
 
-local ProgressBack = Instance.new("Frame")
-ProgressBack.Parent = TeleportOverlay
-ProgressBack.Size = UDim2.new(0, 240, 0, 8)
-ProgressBack.Position = UDim2.new(0.5, -120, 0.5, 45)
-ProgressBack.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ProgressBack.BorderSizePixel = 0
-ProgressBack.ZIndex = 21
+    -- === [One Shot Kill Feature] ===
+    local function ApplyOneShotKill()
+        if not MoonConfig.OneShotKill then return end
+        
+        for _, weapon in ipairs(workspace:GetDescendants()) do
+            if weapon:IsA("Tool") and weapon:FindFirstChild("Damage") then
+                weapon.Damage.Value = 100
+            end
+        end
+        
+        local character = LocalPlayer.Character
+        if character then
+            for _, tool in ipairs(character:GetChildren()) do
+                if tool:IsA("Tool") and tool:FindFirstChild("Damage") then
+                    tool.Damage.Value = 100
+                end
+            end
+        end
+    end
 
-local ProgressCorner = Instance.new("UICorner")
-ProgressCorner.CornerRadius = UDim.new(1, 0)
-ProgressCorner.Parent = ProgressBack
+    -- Circle update function
+    local function UpdateCircle()
+        if not Circle then return end
+        Circle.Visible = MoonConfig.ShowFOV
+        Circle.Radius = MoonConfig.FOV
+        Circle.Position = UserInputService:GetMouseLocation()
+    end
 
-local ProgressFill = Instance.new("Frame")
-ProgressFill.Parent = ProgressBack
-ProgressFill.Size = UDim2.new(0, 0, 1, 0)
-ProgressFill.BackgroundColor3 = RED
-ProgressFill.BorderSizePixel = 0
-ProgressFill.ZIndex = 22
+    -- Character validation
+    local function IsValidCharacter(player)
+        if not player or not player.Character then return false end
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+        return humanoid and humanoid.Health > 0 and rootPart
+    end
 
-local ProgressFillCorner = Instance.new("UICorner")
-ProgressFillCorner.CornerRadius = UDim.new(1, 0)
-ProgressFillCorner.Parent = ProgressFill
+    -- ESP creation function
+    local function CreateEsp(player)
+        if player == LocalPlayer or EspObjects[player] then return end
+        
+        local Esp = {
+            Box = DrawingLib("Square"),
+            Name = DrawingLib("Text"),
+            Health = DrawingLib("Text"),
+            HealthBar = DrawingLib("Line"),
+            TeamColor = player.TeamColor.Color,
+            Connection = nil
+        }
+        
+        Esp.Box.Visible = false
+        Esp.Box.Color = MoonConfig.BoxColor
+        Esp.Box.Thickness = MoonConfig.BoxThickness
+        Esp.Box.Filled = false
+        
+        Esp.Name.Visible = false
+        Esp.Name.Color = Color3.new(1, 1, 1)
+        Esp.Name.Size = 13
+        Esp.Name.Center = true
+        Esp.Name.Outline = true
+        
+        Esp.Health.Visible = false
+        Esp.Health.Size = 13
+        Esp.Health.Outline = true
+        
+        Esp.HealthBar.Visible = false
+        Esp.HealthBar.Thickness = 2
+        
+        EspObjects[player] = Esp
+        
+        -- Add a connection to update ESP when team changes
+        Esp.Connection = player:GetPropertyChangedSignal("Team"):Connect(function()
+            Esp.TeamColor = player.TeamColor.Color
+        end)
+    end
 
---// TELEPORT FUNCTION
-local function TeleportRoute(Character)
-	if IsTeleporting then
-		return
-	end
+    -- ESP update function
+    local function UpdateEsp()
+        for player, esp in pairs(EspObjects) do
+            if IsValidCharacter(player) then
+                local character = player.Character
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                
+                local position, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                
+                if onScreen then
+                    local size = Vector2.new(1800 / position.Z, 2500 / position.Z)
+                    local pos = Vector2.new(position.X - size.X / 2, position.Y - size.Y / 2)
+                    
+                    -- Update box
+                    esp.Box.Size = size -- Fixed here (was BBox)
+                    esp.Box.Position = pos -- Fixed here (was BBox)
+                    esp.Box.Visible = MoonConfig.ESP
+                    esp.Box.Color = MoonConfig.TeamCheck and player.Team == LocalPlayer.Team and Color3.fromRGB(0, 100, 255) or MoonConfig.BoxColor
+                    
+                    -- Update name
+                    esp.Name.Text = player.Name
+                    esp.Name.Position = Vector2.new(pos.X + size.X / 2, pos.Y - 16)
+                    esp.Name.Visible = MoonConfig.ESP
+                    
+                    -- Update health
+                    local health = humanoid.Health
+                    local maxHealth = humanoid.MaxHealth
+                    esp.Health.Text = "HP: " .. math.floor(health)
+                    esp.Health.Position = Vector2.new(pos.X + size.X / 2, pos.Y + size.Y + 2)
+                    esp.Health.Visible = MoonConfig.ESP
+                    esp.Health.Color = Color3.fromRGB(255 - (255 * (health/maxHealth)), 255 * (health/maxHealth), 0)
+                    
+                    -- Health bar
+                    local barPos = Vector2.new(pos.X - 3, pos.Y + size.Y * (1 - health/maxHealth))
+                    esp.HealthBar.From = barPos
+                    esp.HealthBar.To = Vector2.new(barPos.X, barPos.Y + size.Y * (health/maxHealth))
+                    esp.HealthBar.Visible = MoonConfig.ESP
+                    esp.HealthBar.Color = esp.Health.Color
+                else
+                    esp.Box.Visible = false
+                    esp.Name.Visible = false
+                    esp.Health.Visible = false
+                    esp.HealthBar.Visible = false
+                end
+            else
+                esp.Box.Visible = false
+                esp.Name.Visible = false
+                esp.Health.Visible = false
+                esp.HealthBar.Visible = false
+            end
+        end
+    end
 
-	IsTeleporting = true
+    -- Wall check function (optimized)
+    local function IsVisible(part)
+        if not MoonConfig.WallCheck then return true end
+        
+        local origin = Camera.CFrame.Position
+        local target = part.Position
+        local direction = (target - origin) -- Fixed here (was a calculation error)
+        
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+        
+        local raycastResult = Workspace:Raycast(origin, direction, raycastParams)
+        
+        -- If there is no obstacle, or if the obstacle is part of the target's character
+        return not raycastResult or raycastResult.Instance:IsDescendantOf(part.Parent)
+    end
 
-	TeleportOverlay.Visible = true
-	ProgressFill.Size = UDim2.new(0, 0, 1, 0)
-	OverlayText.Text = "anti hit almost loaded"
+    -- Aimbot function (optimized)
+    local function AimAtClosest()
+        if not MoonConfig.Aimbot then return nil end
+        
+        local closestTarget = nil
+        local shortestDistance = math.huge
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player == LocalPlayer then continue end
+            if not IsValidCharacter(player) then continue end
+            if MoonConfig.TeamCheck and player.Team == LocalPlayer.Team then continue end
+            
+            local character = player.Character
+            local aimPart = character:FindFirstChild(MoonConfig.AimPart) or character:FindFirstChild("HumanoidRootPart")
+            if not aimPart then continue end
+            
+            local position, onScreen = Camera:WorldToViewportPoint(aimPart.Position)
+            if not onScreen then continue end
+            if MoonConfig.VisibleOnly and not IsVisible(aimPart) then continue end
+            
+            local mousePos = UserInputService:GetMouseLocation()
+            local distance = (Vector2.new(position.X, position.Y) - mousePos).Magnitude
+            
+            if distance < MoonConfig.FOV and distance < shortestDistance then
+                shortestDistance = distance
+                closestTarget = aimPart
+            end
+        end
+        
+        return closestTarget
+    end
 
-	for i, Position in ipairs(TeleportPoints) do
-		if not Character or not Character.Parent then
-			break
-		end
+    -- Main update loop (optimized)
+    local function MainLoop()
+        UpdateCircle()
+        
+        if MoonConfig.ESP then
+            UpdateEsp()
+        end
+        
+        -- Apply one shot kill every 5 seconds
+        if MoonConfig.OneShotKill and os.clock() - lastDamageCheck > 5 then
+            ApplyOneShotKill()
+            lastDamageCheck = os.clock()
+        end
+        
+        -- Check aim key state
+        local aimKeyPressed = UserInputService:IsMouseButtonPressed(Enum.UserInputType[MoonConfig.AimKey])
+        
+        if aimKeyPressed then
+            local target = AimAtClosest()
+            
+            if target then
+                -- Calculate new mouse position
+                local targetPos = Camera:WorldToViewportPoint(target.Position)
+                local mousePos = UserInputService:GetMouseLocation()
+                local newPos = mousePos:Lerp(Vector2.new(targetPos.X, targetPos.Y), MoonConfig.Smoothness)
+                
+                -- Move mouse
+                mousemoverel(newPos.X - mousePos.X, newPos.Y - mousePos.Y)
+                
+                -- Auto shoot control
+                if MoonConfig.AutoShoot then
+                    if not autoShooting then
+                        mouse1press()
+                        autoShooting = true
+                    end
+                end
+            else
+                -- Stop shooting if there is no target
+                if autoShooting then
+                    mouse1release()
+                    autoShooting = false
+                end
+            end
+        else
+            -- Stop shooting when aim key is released
+            if autoShooting then
+                mouse1release()
+                autoShooting = false
+            end
+        end
+    end
 
-		Character:PivotTo(CFrame.new(Position))
+    -- Initialize players
+    for _, player in pairs(Players:GetPlayers()) do
+        CreateEsp(player)
+    end
 
-		local Progress = i / #TeleportPoints
+    -- Player management
+    connections.playerAdded = Players.PlayerAdded:Connect(CreateEsp)
+    connections.playerRemoving = Players.PlayerRemoving:Connect(function(player)
+        if EspObjects[player] then
+            for _, drawing in pairs(EspObjects[player]) do
+                if typeof(drawing) == "table" and drawing.Remove then
+                    pcall(drawing.Remove, drawing)
+                end
+            end
+            if EspObjects[player].Connection then
+                EspObjects[player].Connection:Disconnect()
+            end
+            EspObjects[player] = nil
+        end
+    end)
 
-		TweenService:Create(
-			ProgressFill,
-			TweenInfo.new(0.15),
-			{
-				Size = UDim2.new(Progress, 0, 1, 0)
-			}
-		):Play()
+    -- Setup update
+    connections.renderStepped = RunService.RenderStepped:Connect(MainLoop)
+    
+    -- ===== [Modern UI System - Moon Killer v1.2] =====
+    local function CreateMoonUI()
+        -- Clean up old UIs
+        local CoreGui = game:GetService("CoreGui")
+        if CoreGui:FindFirstChild("MoonKillerUI") then
+            CoreGui.MoonKillerUI:Destroy()
+        end
+        
+        -- Create main UI
+        local ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "MoonKillerUI"
+        ScreenGui.Parent = CoreGui
+        ScreenGui.ResetOnSpawn = false
+        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        
+        -- UI frame
+        local MainFrame = Instance.new("Frame")
+        MainFrame.Size = UDim2.new(0, 350, 0, 500)
+        MainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+        MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+        MainFrame.BackgroundTransparency = 0.1
+        MainFrame.Parent = ScreenGui
+        
+        -- Overlay
+        local Overlay = Instance.new("Frame")
+        Overlay.Size = UDim2.new(1, 0, 1, 0)
+        Overlay.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+        Overlay.BackgroundTransparency = 0.4
+        Overlay.Parent = MainFrame
+        
+        -- Rounded corners
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, 12)
+        Corner.Parent = MainFrame
+        
+        -- Title bar
+        local TitleBar = Instance.new("Frame")
+        TitleBar.Size = UDim2.new(1, 0, 0, 50)
+        TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+        TitleBar.Parent = MainFrame
+        
+        -- Moon logo
+        local MoonLogo = Instance.new("TextLabel")
+        MoonLogo.Size = UDim2.new(0, 40, 0, 40)
+        MoonLogo.Position = UDim2.new(0, 10, 0.5, -20)
+        MoonLogo.Text = "🌙"
+        MoonLogo.TextSize = 30
+        MoonLogo.BackgroundTransparency = 1
+        MoonLogo.TextColor3 = Color3.fromRGB(200, 200, 255)
+        MoonLogo.Parent = TitleBar
+        
+        -- UI title
+        local Title = Instance.new("TextLabel")
+        Title.Text = t("title")
+        Title.Font = Enum.Font.GothamBold
+        Title.TextSize = 20
+        Title.TextColor3 = Color3.fromRGB(200, 200, 255)
+        Title.Size = UDim2.new(1, -60, 1, 0)
+        Title.Position = UDim2.new(0, 60, 0, 0)
+        Title.BackgroundTransparency = 1
+        Title.TextXAlignment = Enum.TextXAlignment.Left
+        Title.Parent = TitleBar
+        
+        -- Close button
+        local CloseButton = Instance.new("TextButton")
+        CloseButton.Size = UDim2.new(0, 30, 0, 30)
+        CloseButton.Position = UDim2.new(1, -35, 0.5, -15)
+        CloseButton.BackgroundTransparency = 1
+        CloseButton.Text = t("close")
+        CloseButton.TextSize = 20
+        CloseButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        CloseButton.Parent = TitleBar
+        
+        CloseButton.MouseButton1Click:Connect(function()
+            ScreenGui:Destroy()
+        end)
+        
+        -- Content area
+        local ContentFrame = Instance.new("ScrollingFrame")
+        ContentFrame.Size = UDim2.new(1, -20, 1, -70)
+        ContentFrame.Position = UDim2.new(0, 10, 0, 60)
+        ContentFrame.BackgroundTransparency = 1
+        ContentFrame.ScrollBarThickness = 5
+        ContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        ContentFrame.Parent = MainFrame
+        
+        -- Add list layout to organize elements
+        local UIListLayout = Instance.new("UIListLayout")
+        UIListLayout.Parent = ContentFrame
+        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        UIListLayout.Padding = UDim.new(0, 10)
+        
+        -- Create toggle cards
+        local ToggleCards = {}
+        
+        local function CreateToggleCard(title, configKey, icon)
+            local Card = Instance.new("Frame")
+            Card.Size = UDim2.new(1, 0, 0, 50)
+            Card.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            Card.BackgroundTransparency = 0.5
+            Card.Parent = ContentFrame
+            
+            local CardCorner = Instance.new("UICorner")
+            CardCorner.CornerRadius = UDim.new(0, 8)
+            CardCorner.Parent = Card
+            
+            -- Icon
+            local Icon = Instance.new("TextLabel")
+            Icon.Size = UDim2.new(0, 30, 0, 30)
+            Icon.Position = UDim2.new(0, 15, 0.5, -15)
+            Icon.BackgroundTransparency = 1
+            Icon.Text = icon
+            Icon.TextSize = 20
+            Icon.TextColor3 = Color3.fromRGB(200, 200, 255)
+            Icon.Parent = Card
+            
+            -- Label
+            local Label = Instance.new("TextLabel")
+            Label.Text = title
+            Label.Font = Enum.Font.Gotham
+            Label.TextSize = 16
+            Label.TextColor3 = Color3.new(1, 1, 1)
+            Label.Size = UDim2.new(0.6, 0, 1, 0)
+            Label.Position = UDim2.new(0, 60, 0, 0)
+            Label.BackgroundTransparency = 1
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Parent = Card
+            
+            -- Toggle button
+            local ToggleButton = Instance.new("TextButton")
+            ToggleButton.Size = UDim2.new(0, 80, 0, 30)
+            ToggleButton.Position = UDim2.new(1, -90, 0.5, -15)
+            ToggleButton.Text = MoonConfig[configKey] and t("on") or t("off")
+            ToggleButton.Font = Enum.Font.GothamBold
+            ToggleButton.TextSize = 14
+            ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+            ToggleButton.BackgroundColor3 = MoonConfig[configKey] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+            ToggleButton.Parent = Card
+            
+            local ToggleCorner = Instance.new("UICorner")
+            ToggleCorner.CornerRadius = UDim.new(0, 15)
+            ToggleCorner.Parent = ToggleButton
+            
+            -- Button effects
+            ToggleButton.MouseEnter:Connect(function()
+                TweenService:Create(
+                    ToggleButton,
+                    TweenInfo.new(0.2),
+                    {BackgroundTransparency = 0.2}
+                ):Play()
+            end)
+            
+            ToggleButton.MouseLeave:Connect(function()
+                TweenService:Create(
+                    ToggleButton,
+                    TweenInfo.new(0.2),
+                    {BackgroundTransparency = 0}
+                ):Play()
+            end)
+            
+            -- Toggle function
+            ToggleButton.MouseButton1Click:Connect(function()
+                MoonConfig[configKey] = not MoonConfig[configKey]
+                ToggleButton.Text = MoonConfig[configKey] and t("on") or t("off")
+                ToggleButton.BackgroundColor3 = MoonConfig[configKey] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+                
+                -- Update circle when FOV changes
+                if configKey == "ShowFOV" then
+                    Circle.Visible = MoonConfig.ShowFOV
+                end
+                
+                -- Apply auto heal immediately
+                if configKey == "AutoHealth" then
+                    AutoHeal()
+                end
+                
+                -- Apply one shot kill immediately
+                if configKey == "OneShotKill" then
+                    ApplyOneShotKill()
+                end
+            end)
+            
+            table.insert(ToggleCards, {
+                Card = Card,
+                Label = Label,
+                ToggleButton = ToggleButton,
+                configKey = configKey,
+                icon = icon
+            })
+            
+            return Card
+        end
+        
+        -- Create toggle cards in the correct order
+        local Toggles = {
+            {t("aimbot"), "Aimbot", "🎯"},
+            {t("esp"), "ESP", "👁️"},
+            {t("autoshoot"), "AutoShoot", "🔫"},
+            {t("autohealth"), "AutoHealth", "❤️"},
+            {t("oneshotkill"), "OneShotKill", "💀"},
+            {t("teamcheck"), "TeamCheck", "👥"},
+            {t("visibleonly"), "VisibleOnly", "👁️"},
+            {t("wallcheck"), "WallCheck", "🧱"},
+            {t("showfov"), "ShowFOV", "🔵"}
+        }
+        
+        for _, toggle in ipairs(Toggles) do
+            CreateToggleCard(toggle[1], toggle[2], toggle[3])
+        end
+        
+        -- Advanced settings section
+        local SettingsHeader = Instance.new("TextLabel")
+        SettingsHeader.Text = t("advanced_settings")
+        SettingsHeader.Font = Enum.Font.GothamBold
+        SettingsHeader.TextSize = 18
+        SettingsHeader.TextColor3 = Color3.fromRGB(200, 200, 255)
+        SettingsHeader.Size = UDim2.new(1, 0, 0, 40)
+        SettingsHeader.BackgroundTransparency = 1
+        SettingsHeader.TextXAlignment = Enum.TextXAlignment.Left
+        SettingsHeader.Parent = ContentFrame
+        
+        -- Language switch button
+        local LanguageButton = Instance.new("TextButton")
+        LanguageButton.Size = UDim2.new(1, 0, 0, 40)
+        LanguageButton.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+        LanguageButton.Text = t("switch_language")
+        LanguageButton.Font = Enum.Font.GothamBold
+        LanguageButton.TextSize = 16
+        LanguageButton.TextColor3 = Color3.new(1, 1, 1)
+        LanguageButton.Parent = ContentFrame
+        
+        local LanguageCorner = Instance.new("UICorner")
+        LanguageCorner.CornerRadius = UDim.new(0, 8)
+        LanguageCorner.Parent = LanguageButton
+        
+        LanguageButton.MouseButton1Click:Connect(function()
+            -- Switch language
+            MoonConfig.Language = (MoonConfig.Language == "Arabic" and "English") or "Arabic"
+            
+            -- Update texts in the UI
+            Title.Text = t("title")
+            SettingsHeader.Text = t("advanced_settings")
+            LanguageButton.Text = t("switch_language")
+            
+            -- Update toggle buttons
+            for _, card in ipairs(ToggleCards) do
+                local key = card.configKey:lower()
+                card.Label.Text = Translations[MoonConfig.Language][key] or card.configKey
+                card.ToggleButton.Text = MoonConfig[card.configKey] and t("on") or t("off")
+            end
+        end)
+        
+        -- Aim part settings
+        local AimPartContainer = Instance.new("Frame")
+        AimPartContainer.Size = UDim2.new(1, 0, 0, 40)
+        AimPartContainer.BackgroundTransparency = 1
+        AimPartContainer.Parent = ContentFrame
+        
+        local AimPartLabel = Instance.new("TextLabel")
+        AimPartLabel.Text = t("aim_part")
+        AimPartLabel.Font = Enum.Font.Gotham
+        AimPartLabel.TextSize = 16
+        AimPartLabel.TextColor3 = Color3.new(1, 1, 1)
+        AimPartLabel.Size = UDim2.new(0.4, 0, 1, 0)
+        AimPartLabel.BackgroundTransparency = 1
+        AimPartLabel.TextXAlignment = Enum.TextXAlignment.Left
+        AimPartLabel.Parent = AimPartContainer
+        
+        local AimPartBox = Instance.new("TextBox")
+        AimPartBox.Size = UDim2.new(0.6, -10, 0, 30)
+        AimPartBox.Position = UDim2.new(0.4, 0, 0.5, -15)
+        AimPartBox.Text = MoonConfig.AimPart
+        AimPartBox.Font = Enum.Font.Gotham
+        AimPartBox.TextSize = 16
+        AimPartBox.TextColor3 = Color3.new(1, 1, 1)
+        AimPartBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        AimPartBox.Parent = AimPartContainer
+        
+        AimPartBox.FocusLost:Connect(function()
+            MoonConfig.AimPart = AimPartBox.Text
+        end)
+        
+        -- FOV size settings
+        local FOVContainer = Instance.new("Frame")
+        FOVContainer.Size = UDim2.new(1, 0, 0, 40)
+        FOVContainer.BackgroundTransparency = 1
+        FOVContainer.Parent = ContentFrame
+        
+        local FOVLabel = Instance.new("TextLabel")
+        FOVLabel.Text = t("fov_size")
+        FOVLabel.Font = Enum.Font.Gotham
+        FOVLabel.TextSize = 16
+        FOVLabel.TextColor3 = Color3.new(1, 1, 1)
+        FOVLabel.Size = UDim2.new(0.4, 0, 1, 0)
+        FOVLabel.BackgroundTransparency = 1
+        FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
+        FOVLabel.Parent = FOVContainer
+        
+        local FOVSlider = Instance.new("TextButton")
+        FOVSlider.Size = UDim2.new(0.6, -10, 0, 30)
+        FOVSlider.Position = UDim2.new(0.4, 0, 0.5, -15)
+        FOVSlider.Text = tostring(MoonConfig.FOV)
+        FOVSlider.Font = Enum.Font.Gotham
+        FOVSlider.TextSize = 16
+        FOVSlider.TextColor3 = Color3.new(1, 1, 1)
+        FOVSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        FOVSlider.Parent = FOVContainer
+        
+        FOVSlider.MouseButton1Click:Connect(function()
+            local newFOV = tonumber(FOVSlider.Text)
+            if newFOV then
+                MoonConfig.FOV = math.clamp(newFOV, 50, 500)
+                FOVSlider.Text = tostring(MoonConfig.FOV)
+            end
+        end)
+        
+        -- Aim smoothness settings (new addition)
+        local SmoothnessContainer = Instance.new("Frame")
+        SmoothnessContainer.Size = UDim2.new(1, 0, 0, 40)
+        SmoothnessContainer.BackgroundTransparency = 1
+        SmoothnessContainer.Parent = ContentFrame
+        
+        local SmoothnessLabel = Instance.new("TextLabel")
+        SmoothnessLabel.Text = t("smoothness")
+        SmoothnessLabel.Font = Enum.Font.Gotham
+        SmoothnessLabel.TextSize = 16
+        SmoothnessLabel.TextColor3 = Color3.new(1, 1, 1)
+        SmoothnessLabel.Size = UDim2.new(0.4, 0, 1, 0)
+        SmoothnessLabel.BackgroundTransparency = 1
+        SmoothnessLabel.TextXAlignment = Enum.TextXAlignment.Left
+        SmoothnessLabel.Parent = SmoothnessContainer
+        
+        local SmoothnessBox = Instance.new("TextBox")
+        SmoothnessBox.Size = UDim2.new(0.6, -10, 0, 30)
+        SmoothnessBox.Position = UDim2.new(0.4, 0, 0.5, -15)
+        SmoothnessBox.Text = tostring(MoonConfig.Smoothness)
+        SmoothnessBox.Font = Enum.Font.Gotham
+        SmoothnessBox.TextSize = 16
+        SmoothnessBox.TextColor3 = Color3.new(1, 1, 1)
+        SmoothnessBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        SmoothnessBox.Parent = SmoothnessContainer
+        
+        SmoothnessBox.FocusLost:Connect(function()
+            local newSmoothness = tonumber(SmoothnessBox.Text)
+            if newSmoothness then
+                MoonConfig.Smoothness = math.clamp(newSmoothness, 0.1, 1.0)
+                SmoothnessBox.Text = string.format("%.1f", MoonConfig.Smoothness)
+            end
+        end)
+        
+        -- UI effects
+        MainFrame.Visible = false
+        task.wait()
+        MainFrame.Visible = true
+        MainFrame.Position = UDim2.new(0.5, -175, 0, -600)
+        TweenService:Create(
+            MainFrame,
+            TweenInfo.new(0.7, Enum.EasingStyle.Quint),
+            {Position = UDim2.new(0.5, -175, 0.5, -250)}
+        ):Play()
+        
+        -- Make the UI draggable
+        local Dragging, DragInput, DragStart, StartPos
+        
+        TitleBar.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                Dragging = true
+                DragStart = input.Position
+                StartPos = MainFrame.Position
+                
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        Dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        TitleBar.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                DragInput = input
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if input == DragInput and Dragging then
+                local Delta = input.Position - DragStart
+                MainFrame.Position = UDim2.new(
+                    StartPos.X.Scale,
+                    StartPos.X.Offset + Delta.X,
+                    StartPos.Y.Scale,
+                    StartPos.Y.Offset + Delta.Y
+                )
+            end
+        end)
+        
+        return ScreenGui
+    end
 
-		task.wait(0.15)
-	end
-
-	OverlayText.Text = "anti hit loaded!"
-
-	task.wait(0.6)
-
-	local Fade = TweenService:Create(
-		TeleportOverlay,
-		TweenInfo.new(0.4),
-		{
-			BackgroundTransparency = 1
-		}
-	)
-
-	Fade:Play()
-	Fade.Completed:Wait()
-
-	TeleportOverlay.Visible = false
-	TeleportOverlay.BackgroundTransparency = 0.25
-
-	IsTeleporting = false
+    -- Create UI
+    ui = CreateMoonUI()
+    
+    -- Setup hotkeys
+    connections.uiToggle = UserInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode[MoonConfig.UIKey] then
+            if ui then
+                ui.Enabled = not ui.Enabled
+            end
+        end
+    end)
+    
+    -- Memory cleanup on reload
+    connections.unloading = game:GetService("CoreGui").DescendantRemoving:Connect(function(descendant)
+        if descendant.Name == "MoonKillerUI" then
+            for _, conn in pairs(connections) do
+                if conn then
+                    conn:Disconnect()
+                end
+            end
+            if Circle then
+                Circle:Remove()
+            end
+            for player, esp in pairs(EspObjects) do
+                for _, drawing in pairs(esp) do
+                    if typeof(drawing) == "table" and drawing.Remove then
+                        pcall(drawing.Remove, drawing)
+                    end
+                end
+            end
+            getgenv().MoonKillerLoaded = false
+        end
+    end)
 end
 
---// PROXIMITY PROMPT
-ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
-	if player ~= LocalPlayer then
-		return
-	end
-
-	if not AntiHitEnabled then
-		return
-	end
-
-	local Character = LocalPlayer.Character
-
-	if Character then
-		TeleportRoute(Character)
-	end
-end)
-
---// CHARACTER RESPAWN
-LocalPlayer.CharacterAdded:Connect(function(Character)
-	task.wait(1)
-
-	if SpeedOverrideEnabled then
-		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-
-		if Humanoid then
-			Humanoid.WalkSpeed = TargetSpeed
-		end
-	end
-
-	-- Re-apply noclip after respawn
-	if NoclipEnabled then
-		for _, part in ipairs(Character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
-		end
-	end
-end)
-
-print("DATKITS HUB PREMIUM loaded.")
+-- Start safe loading
+if not getgenv().MoonKillerLoaded then
+    getgenv().MoonKillerLoaded = true
+    local success, err = pcall(SafeLoad)
+    if not success then
+        warn(string.format(t("failed"), err))
+        getgenv().MoonKillerLoaded = false
+    else
+        print(t("loaded"))
+        print(string.format(t("press_key"), MoonConfig.UIKey))
+        print(t("features"))
+    end
+else
+    warn(t("already_loaded"))
+end
