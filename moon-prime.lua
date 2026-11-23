@@ -1128,7 +1128,7 @@ return (function(...)
         local W = r("Moon Decompiled Hub", K, e, j, f.cur.title, f.cur.titleS, "title", "titleS");
         local S = r(("[ " .. (O .. " ]")), ((K + W) + 4), e, j, a, q.white);
         if B then
-            r("By Moon Studio", K, ((e + j) + 3), 13, Color3.new(0, 0, 0), q.white);
+            r("By daykits", K, ((e + j) + 3), 13, Color3.new(0, 0, 0), q.white);
         end;
         return ((W + 4) + S);
     end;
